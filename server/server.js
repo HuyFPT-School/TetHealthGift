@@ -7,6 +7,9 @@ const swaggerSpec = require("./config/swagger");
 const database = require("./config/db");
 const AuthRoute = require("./routes/AuthRoute");
 const UserRoute = require("./routes/UserRoute");
+const ProductRoutes = require("./routes/ProductRoutes");
+const OrderRoutes = require("./routes/OrderRoutes");
+const UploadRoute = require("./routes/UploadRoute");
 const app = express();
 database.connect();
 
@@ -21,6 +24,9 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth", AuthRoute);
 app.use("/api/users", UserRoute);
+app.use("/api/products", ProductRoutes);
+app.use("/api/orders", OrderRoutes);
+app.use("/api/upload", UploadRoute);
 
 // Server setup
 const PORT = process.env.PORT || 3000;

@@ -42,14 +42,15 @@ const user = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    emailVerificationToken: String, 
-    emailVerificationExpires: Date, 
+    avatar: {type: String},
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
 
     passwordResetToken: String,
-    passwordResetExpires: Date
+    passwordResetExpires: Date,
   },
   {
     timestamps: true,
-  }
+  },
 );
 module.exports = mongoose.models.User || mongoose.model("User", user);
