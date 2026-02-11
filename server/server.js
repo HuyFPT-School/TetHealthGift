@@ -1,54 +1,49 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
+const database = require("./config/db");
+const AuthRoute = require("./routes/AuthRoute");
+const UserRoute = require("./routes/UserRoute");
+const ProductRoutes = require("./routes/ProductRoutes");
+const OrderRoutes = require("./routes/OrderRoutes");
+const CategoryRoutes = require("./routes/CategoryRoutes");
+const BlogRoutes = require("./routes/BlogRoutes");
+const UploadRoute = require("./routes/UploadRoute");
+const PaymentRoutes = require("./routes/PaymentRoutes");
+const WishlistRoute = require("./routes/WishlistRoute");
 
 const app = express();
+database.connect();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// MongoDB Connection
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/tethealthgift');
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
-  }
-};
+// Swagger Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Connect to database
-connectDB();
+app.use("/api/auth", AuthRoute);
+app.use("/api/users", UserRoute);
+app.use("/api/products", ProductRoutes);
+app.use("/api/orders", OrderRoutes);
+app.use("/api/categories", CategoryRoutes);
+app.use("/api/blogs", BlogRoutes);
+app.use("/api/upload", UploadRoute);
+app.use("/api/payment", PaymentRoutes);
+app.use("/api/wishlist", WishlistRoute);
 
-// Import routes
-const productRoutes = require('./routes/productRoutes');
-const orderRoutes = require('./routes/orderRoutes');
-const categoryRoutes = require('./routes/categoryRoutes');
 
-// Routes
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/categories', categoryRoutes);
-
-// Basic route
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to TetHealthGift API' });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!', error: err.message });
-});
-
-const PORT = process.env.PORT || 5000;
+// Server setup
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Swagger Documentation: http://localhost:${PORT}/api-docs`);
 });
 
 module.exports = app;
