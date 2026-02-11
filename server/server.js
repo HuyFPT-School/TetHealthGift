@@ -9,7 +9,12 @@ const AuthRoute = require("./routes/AuthRoute");
 const UserRoute = require("./routes/UserRoute");
 const ProductRoutes = require("./routes/ProductRoutes");
 const OrderRoutes = require("./routes/OrderRoutes");
+const CategoryRoutes = require("./routes/CategoryRoutes");
+const BlogRoutes = require("./routes/BlogRoutes");
 const UploadRoute = require("./routes/UploadRoute");
+const PaymentRoutes = require("./routes/PaymentRoutes");
+const WishlistRoute = require("./routes/WishlistRoute");
+
 const app = express();
 database.connect();
 
@@ -26,7 +31,12 @@ app.use("/api/auth", AuthRoute);
 app.use("/api/users", UserRoute);
 app.use("/api/products", ProductRoutes);
 app.use("/api/orders", OrderRoutes);
+app.use("/api/categories", CategoryRoutes);
+app.use("/api/blogs", BlogRoutes);
 app.use("/api/upload", UploadRoute);
+app.use("/api/payment", PaymentRoutes);
+app.use("/api/wishlist", WishlistRoute);
+
 
 // Server setup
 const PORT = process.env.PORT || 3000;

@@ -42,7 +42,13 @@ const user = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    avatar: {type: String},
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
+    avatar: { type: String },
     emailVerificationToken: String,
     emailVerificationExpires: Date,
 

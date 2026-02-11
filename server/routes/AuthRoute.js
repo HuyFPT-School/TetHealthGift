@@ -1,6 +1,8 @@
 const express = require("express");
 const {
   login,
+  logout,
+  token,
   register,
   forgetPassword,
   resetPassword,
@@ -120,6 +122,50 @@ router.post("/register", register);
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/login", login);
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token using refresh token from cookies
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: New access token generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *       401:
+ *         description: Invalid or expired refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/refresh", token);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user and invalidate refresh token
+ *     tags: [Authentication]
+ *     responses:
+ *       204:
+ *         description: Logged out successfully (no content)
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/logout", logout);
 
 /**
  * @swagger
