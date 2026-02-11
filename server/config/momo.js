@@ -22,7 +22,7 @@ const momoConfig = {
     process.env.MOMO_IPN_URL || "http://localhost:5000/api/payment/momo-ipn",
 
   // Cấu hình mặc định
-  requestType: "captureWallet",
+  requestType: "payWithMethod",
   lang: "vi",
 };
 
