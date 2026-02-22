@@ -1,11 +1,29 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Header() {
   const [searchValue, setSearchValue] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchValue.trim()) {
+      navigate(`/qua-tet?search=${encodeURIComponent(searchValue.trim())}`);
+    }
+  };
+
+  const navItems = [
+    { label: "TRANG CHỦ", icon: "🏠", to: "/" },
+    { label: "GIỚI THIỆU", icon: "👤", to: "/gioi-thieu" },
+    { label: "QUÀ TẾT ▾", icon: "🎁", to: "/qua-tet" },
+    { label: "QUÀ 8/3", icon: "🎁", to: "/qua-83" },
+    { label: "BLOG", icon: "📰", to: "/blog" },
+    { label: "LIÊN HỆ", icon: "✉️", to: "/lien-he" },
+  ];
 
   return (
     <header style={{ fontFamily: "'Segoe UI', sans-serif" }}>
-      {/* Top announcement bar - peach/cream background */}
+      {/* Top announcement bar */}
       <div
         style={{
           background: "#f8e8d8",
@@ -37,40 +55,43 @@ export default function Header() {
           flexWrap: "wrap",
         }}
       >
-        {/* Logo */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            lineHeight: 1,
-            minWidth: "160px",
-          }}
-        >
-          <span
+        {/* Logo → về trang chủ */}
+        <Link to="/" style={{ textDecoration: "none" }}>
+          <div
             style={{
-              fontSize: "10px",
-              color: "#c0392b",
-              fontStyle: "italic",
-              letterSpacing: "2px",
+              display: "flex",
+              flexDirection: "column",
+              lineHeight: 1,
+              minWidth: "160px",
             }}
           >
-            tet
-          </span>
-          <span
-            style={{
-              fontSize: "24px",
-              fontWeight: "bold",
-              color: "#c0392b",
-              fontFamily: "Georgia, serif",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            health<span style={{ color: "#e67e22" }}>gift</span>
-          </span>
-        </div>
+            <span
+              style={{
+                fontSize: "10px",
+                color: "#c0392b",
+                fontStyle: "italic",
+                letterSpacing: "2px",
+              }}
+            >
+              tet
+            </span>
+            <span
+              style={{
+                fontSize: "24px",
+                fontWeight: "bold",
+                color: "#c0392b",
+                fontFamily: "Georgia, serif",
+                letterSpacing: "-0.5px",
+              }}
+            >
+              health<span style={{ color: "#e67e22" }}>gift</span>
+            </span>
+          </div>
+        </Link>
 
         {/* Search */}
-        <div
+        <form
+          onSubmit={handleSearch}
           style={{
             flex: 1,
             maxWidth: "600px",
@@ -92,7 +113,6 @@ export default function Header() {
               fontSize: "14px",
             }}
           />
-          {/* Category dropdown */}
           <div
             style={{
               display: "flex",
@@ -111,6 +131,7 @@ export default function Header() {
             <span style={{ fontSize: "10px", color: "#999" }}>▼</span>
           </div>
           <button
+            type="submit"
             style={{
               background: "#e67e22",
               color: "#fff",
@@ -122,7 +143,7 @@ export default function Header() {
           >
             🔍
           </button>
-        </div>
+        </form>
 
         {/* Right actions */}
         <div
@@ -203,17 +224,10 @@ export default function Header() {
             justifyContent: "center",
           }}
         >
-          {[
-            { label: "TRANG CHỦ", icon: "🏠" },
-            { label: "GIỚI THIỆU", icon: "👤" },
-            { label: "QUÀ TẾT ▾", icon: "🎁" },
-            { label: "QUÀ 8/3", icon: "🎁" },
-            { label: "BLOG", icon: "📰" },
-            { label: "LIÊN HỆ", icon: "✉️" },
-          ].map((item) => (
+          {navItems.map((item) => (
             <li key={item.label}>
-              <a
-                href="#"
+              <Link
+                to={item.to}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -230,12 +244,12 @@ export default function Header() {
               >
                 <span>{item.icon}</span>
                 <span>{item.label}</span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
 
-        {/* Separator + CATALOG */}
+        {/* CATALOG */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <div style={{ width: "1px", height: "30px", background: "#ddd" }} />
           <button
