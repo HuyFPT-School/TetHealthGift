@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 
 import Header from "./components/Layout/Header";
-import Footer from "./components/Layout/Footer";
+import Footer from "./components/layout/Footer";
 import HomePage from "./pages/HomePage";
 import ProductListingPage from "./components/PLP/ProductListingPage";
 
