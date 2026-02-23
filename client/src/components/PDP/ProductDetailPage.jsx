@@ -1,10 +1,22 @@
 // FILE: src/components/PDP/ProductDetailPage.jsx
+// Tích hợp API thật — dùng _id thay vì slug
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { PRODUCTS, formatPrice } from "../../services/productService";
+import { fetchProductById, formatPrice } from "../../services/productService";
 import ReviewSection from "./ReviewSection";
 
+// Ảnh fallback dùng khi URL không load được (tránh external placeholder service)
+const FALLBACK_IMG =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f5e8e4'/%3E%3Ctext x='200' y='190' text-anchor='middle' font-size='64' fill='%23d4a89a'%3E%F0%9F%8E%81%3C/text%3E%3Ctext x='200' y='240' text-anchor='middle' font-size='18' fill='%23c0a09a'%3EKh%C3%B4ng c%C3%B3 %E1%BA%A3nh%3C/text%3E%3C/svg%3E";
+
+// Lọc URL placeholder không hợp lệ từ seed data
+const sanitizeImage = (url) => {
+  if (!url || typeof url !== "string") return null;
+  if (url.includes("via.placeholder.com") || url.includes("placeholder.com"))
+    return null;
+  return url;
+};
 function StarRating({ rating, size = 14 }) {
   return (
     <div style={{ display: "flex", gap: 2 }}>
@@ -13,7 +25,7 @@ function StarRating({ rating, size = 14 }) {
           key={i}
           style={{
             fontSize: size,
-            color: i <= Math.round(rating) ? "#D4AF37" : "#ddd",
+            color: i <= Math.round(rating || 0) ? "#D4AF37" : "#ddd",
           }}
         >
           ★
@@ -23,7 +35,7 @@ function StarRating({ rating, size = 14 }) {
   );
 }
 
-function QuantitySelector({ value, onChange }) {
+function QuantitySelector({ value, onChange, max }) {
   return (
     <div
       style={{
@@ -61,7 +73,7 @@ function QuantitySelector({ value, onChange }) {
         {value}
       </span>
       <button
-        onClick={() => onChange(value + 1)}
+        onClick={() => onChange(Math.min(max || 99, value + 1))}
         style={{
           width: 38,
           height: 38,
@@ -80,34 +92,62 @@ function QuantitySelector({ value, onChange }) {
 }
 
 export default function ProductDetailPage() {
-  const { slug } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const product = PRODUCTS.find((p) => p.slug === slug);
 
-  const [selectedVariant, setSelectedVariant] = useState(product?.variants[0]);
-  const [quantity, setQuantity] = useState(1);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [tab, setTab] = useState("mo-ta");
 
   useEffect(() => {
-    if (product) {
-      setSelectedVariant(product.variants[0]);
-      setQuantity(1);
-      setActiveImage(0);
-      setAdded(false);
-      setTab("mo-ta");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [slug]);
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchProductById(id);
+        // BE có thể trả về { product: {...} } hoặc thẳng object
+        setProduct(data.product || data);
+        setActiveImage(0);
+        setQuantity(1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (err) {
+        console.error(err);
+        setError("Không thể tải sản phẩm.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) load();
+  }, [id]);
 
-  // Không tìm thấy sản phẩm
-  if (!product) {
+  // Loading state
+  if (loading)
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+          color: "#c0392b",
+          fontSize: 16,
+        }}
+      >
+        ⏳ Đang tải sản phẩm...
+      </div>
+    );
+
+  // Error / not found
+  if (error || !product)
     return (
       <div style={{ textAlign: "center", padding: "80px 40px", color: "#aaa" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>😕</div>
         <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>
-          Không tìm thấy sản phẩm
+          {error || "Không tìm thấy sản phẩm"}
         </p>
         <button
           onClick={() => navigate("/qua-tet")}
@@ -119,19 +159,35 @@ export default function ProductDetailPage() {
             borderRadius: 8,
             cursor: "pointer",
             fontWeight: 700,
-            fontSize: 14,
           }}
         >
           ← Quay lại danh sách
         </button>
       </div>
     );
-  }
 
-  const discount = Math.round(
-    ((product.originalPrice - selectedVariant.price) / product.originalPrice) *
-      100,
-  );
+  // Dữ liệu thật từ BE
+  const images = (
+    Array.isArray(product.imageUrl) ? product.imageUrl : [product.imageUrl]
+  )
+    .map(sanitizeImage)
+    .filter(Boolean);
+  const inStock = product.quantity > 0;
+  const discount =
+    product.discountPrice && product.discountPrice < product.price
+      ? Math.round(
+          ((product.price - product.discountPrice) / product.price) * 100,
+        )
+      : 0;
+
+  const avgRating = product.comments?.length
+    ? (
+        product.comments.reduce((s, c) => s + c.rating, 0) /
+        product.comments.length
+      ).toFixed(1)
+    : 0;
+
+  const tags = Array.isArray(product.tags) ? product.tags : [];
 
   const handleAddToCart = () => {
     setAdded(true);
@@ -161,15 +217,15 @@ export default function ProductDetailPage() {
             onClick={() => navigate("/")}
           >
             Trang chủ
-          </span>{" "}
-          &rsaquo;{" "}
+          </span>
+          {" › "}
           <span
             style={{ cursor: "pointer", color: "#c0392b" }}
             onClick={() => navigate("/qua-tet")}
           >
             Quà Tết
-          </span>{" "}
-          &rsaquo;{" "}
+          </span>
+          {" › "}
           <span style={{ color: "#2C1810", fontWeight: 600 }}>
             {product.name}
           </span>
@@ -191,31 +247,37 @@ export default function ProductDetailPage() {
               style={{
                 height: 400,
                 borderRadius: 18,
-                background: product.gradient,
+                background: "#f8f0ec",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                position: "relative",
                 overflow: "hidden",
-                boxShadow: "0 12px 40px rgba(192,57,43,0.2)",
+                boxShadow: "0 12px 40px rgba(192,57,43,0.15)",
+                position: "relative",
               }}
             >
-              <div
-                style={{
-                  fontSize: "8rem",
-                  filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.25))",
-                  userSelect: "none",
-                }}
-              >
-                {product.images[activeImage]}
-              </div>
-              {product.badge && (
+              {images[activeImage] ? (
+                <img
+                  src={images[activeImage]}
+                  alt={product.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = FALLBACK_IMG;
+                  }}
+                />
+              ) : (
+                <span style={{ color: "#ccc", fontSize: 14 }}>
+                  Không có ảnh
+                </span>
+              )}
+              {discount > 0 && (
                 <div
                   style={{
                     position: "absolute",
                     top: 16,
                     left: 16,
-                    background: product.badgeColor,
+                    background: "#e74c3c",
                     color: "#fff",
                     padding: "5px 14px",
                     borderRadius: 20,
@@ -223,232 +285,185 @@ export default function ProductDetailPage() {
                     fontSize: 12,
                   }}
                 >
-                  {product.badge}
+                  -{discount}%
                 </div>
               )}
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-              {product.images.map((img, i) => (
-                <div
-                  key={i}
-                  onClick={() => setActiveImage(i)}
-                  style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 10,
-                    background: product.gradient,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "1.8rem",
-                    cursor: "pointer",
-                    transition: "all .2s",
-                    border: `2.5px solid ${activeImage === i ? "#c0392b" : "transparent"}`,
-                    opacity: activeImage === i ? 1 : 0.55,
-                  }}
-                >
-                  {img}
-                </div>
-              ))}
-            </div>
+
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  marginTop: 14,
+                  flexWrap: "wrap",
+                }}
+              >
+                {images.map((img, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setActiveImage(i)}
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 10,
+                      overflow: "hidden",
+                      border: `2.5px solid ${activeImage === i ? "#c0392b" : "transparent"}`,
+                      cursor: "pointer",
+                      opacity: activeImage === i ? 1 : 0.55,
+                      transition: "all .2s",
+                    }}
+                  >
+                    <img
+                      src={img}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = FALLBACK_IMG;
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Info */}
           <div>
             <h1
               style={{
-                fontFamily: "'Be Vietnam Pro', sans-serif",
                 fontSize: 24,
-                fontWeight: 700,
+                fontWeight: 800,
                 color: "#2C1810",
-                marginBottom: 12,
-                lineHeight: 1.35,
+                marginBottom: 10,
+                lineHeight: 1.3,
               }}
             >
               {product.name}
             </h1>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 18,
-                flexWrap: "wrap",
-              }}
-            >
-              <StarRating rating={product.rating} size={16} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#D4AF37" }}>
-                {product.rating}
-              </span>
-              <span style={{ fontSize: 13, color: "#aaa" }}>
-                ({product.reviewCount} đánh giá)
-              </span>
-              <span
+            {/* Rating */}
+            {avgRating > 0 && (
+              <div
                 style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: product.inStock ? "#27ae60" : "#e74c3c",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 14,
                 }}
               >
-                {product.inStock ? "● Còn hàng" : "● Hết hàng"}
-              </span>
-            </div>
+                <StarRating rating={parseFloat(avgRating)} size={16} />
+                <span style={{ fontSize: 14, color: "#888" }}>
+                  {avgRating} ({product.comments?.length} đánh giá)
+                </span>
+              </div>
+            )}
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                gap: 12,
-                marginBottom: 20,
-              }}
-            >
-              <span style={{ fontSize: 30, fontWeight: 800, color: "#c0392b" }}>
-                {formatPrice(selectedVariant.price)}
-              </span>
-              {product.originalPrice > selectedVariant.price && (
-                <>
+            {/* Tags */}
+            {tags.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  flexWrap: "wrap",
+                  marginBottom: 16,
+                }}
+              >
+                {tags.map((tag, i) => (
                   <span
+                    key={i}
                     style={{
-                      fontSize: 16,
-                      color: "#bbb",
-                      textDecoration: "line-through",
-                    }}
-                  >
-                    {formatPrice(product.originalPrice)}
-                  </span>
-                  <span
-                    style={{
-                      background: "#fde8e5",
+                      fontSize: 11,
+                      background: "#fdf0ed",
                       color: "#c0392b",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      padding: "3px 10px",
+                      border: "1px solid #f0d0ca",
                       borderRadius: 20,
+                      padding: "3px 12px",
+                      fontWeight: 600,
                     }}
                   >
-                    Tiết kiệm {discount}%
+                    {tag}
                   </span>
-                </>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
 
-            {/* Variants */}
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#2C1810",
-                marginBottom: 10,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              🎁 Chọn Set Quà
-            </p>
+            {/* Price */}
             <div
               style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                marginBottom: 22,
+                marginBottom: 24,
+                padding: 16,
+                background: "#fff",
+                borderRadius: 12,
+                border: "1px solid #f0e0d8",
               }}
             >
-              {product.variants.map((v) => (
-                <div
-                  key={v.id}
-                  onClick={() => setSelectedVariant(v)}
-                  style={{
-                    border: `2px solid ${selectedVariant.id === v.id ? "#c0392b" : "#e8d5d0"}`,
-                    borderRadius: 12,
-                    padding: "14px 16px",
-                    cursor: "pointer",
-                    background:
-                      selectedVariant.id === v.id ? "#fdf0ed" : "#fff",
-                    transition: "all .2s",
-                  }}
-                >
+              {product.discountPrice &&
+                product.discountPrice < product.price && (
                   <div
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 6,
+                      fontSize: 14,
+                      color: "#aaa",
+                      textDecoration: "line-through",
+                      marginBottom: 4,
                     }}
                   >
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 13,
-                        color:
-                          selectedVariant.id === v.id ? "#c0392b" : "#2C1810",
-                      }}
-                    >
-                      {selectedVariant.id === v.id ? "✓ " : ""}
-                      {v.label}
-                    </span>
-                    <span
-                      style={{
-                        fontWeight: 800,
-                        color: "#c0392b",
-                        fontSize: 14,
-                      }}
-                    >
-                      {formatPrice(v.price)}
-                    </span>
+                    {formatPrice(product.discountPrice)}
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {v.items.map((item, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          fontSize: 11,
-                          background:
-                            selectedVariant.id === v.id ? "#fff" : "#fdf8f5",
-                          color: "#666",
-                          border: "1px solid #eee",
-                          borderRadius: 4,
-                          padding: "2px 8px",
-                        }}
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                )}
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#c0392b" }}>
+                {formatPrice(product.price)}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: inStock ? "#27ae60" : "#e74c3c",
+                  fontWeight: 600,
+                  marginTop: 6,
+                }}
+              >
+                {inStock
+                  ? `✓ Còn hàng (${product.quantity} sản phẩm)`
+                  : "✗ Hết hàng"}
+              </div>
             </div>
 
-            {/* Qty + Add */}
+            {/* Qty + Add to cart */}
             <div
               style={{
                 display: "flex",
                 gap: 12,
                 alignItems: "center",
-                marginBottom: 14,
+                marginBottom: 12,
               }}
             >
-              <QuantitySelector value={quantity} onChange={setQuantity} />
+              <QuantitySelector
+                value={quantity}
+                onChange={setQuantity}
+                max={product.quantity}
+              />
               <button
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={!inStock}
                 style={{
                   flex: 1,
                   padding: "13px 20px",
-                  background: added
-                    ? "#27ae60"
-                    : product.inStock
-                      ? "#c0392b"
-                      : "#ddd",
+                  background: added ? "#27ae60" : inStock ? "#c0392b" : "#ddd",
                   color: "#fff",
                   border: "none",
                   borderRadius: 10,
                   fontFamily: "inherit",
                   fontWeight: 700,
                   fontSize: 15,
-                  cursor: product.inStock ? "pointer" : "not-allowed",
+                  cursor: inStock ? "pointer" : "not-allowed",
                   transition: "all .25s",
-                  boxShadow: product.inStock
+                  boxShadow: inStock
                     ? "0 4px 16px rgba(192,57,43,0.3)"
                     : "none",
                 }}
@@ -494,24 +509,22 @@ export default function ProductDetailPage() {
                 border: "1px solid #f0e0d8",
               }}
             >
-              {[
-                "🚚 Giao tận nơi",
-                "🔒 Bảo đảm chính hãng",
-                "↩️ Đổi trả 7 ngày",
-              ].map((b) => (
-                <span
-                  key={b}
-                  style={{
-                    fontSize: 11,
-                    color: "#666",
-                    fontWeight: 600,
-                    flex: 1,
-                    textAlign: "center",
-                  }}
-                >
-                  {b}
-                </span>
-              ))}
+              {["🚚 Giao tận nơi", "🔒 Chính hãng", "↩️ Đổi trả 7 ngày"].map(
+                (b) => (
+                  <span
+                    key={b}
+                    style={{
+                      fontSize: 11,
+                      color: "#666",
+                      fontWeight: 600,
+                      flex: 1,
+                      textAlign: "center",
+                    }}
+                  >
+                    {b}
+                  </span>
+                ),
+              )}
             </div>
           </div>
         </div>
@@ -527,7 +540,10 @@ export default function ProductDetailPage() {
           >
             {[
               { id: "mo-ta", label: "📋 Mô tả sản phẩm" },
-              { id: "danh-gia", label: `⭐ Đánh giá (${product.reviewCount})` },
+              {
+                id: "danh-gia",
+                label: `⭐ Đánh giá (${product.comments?.length || 0})`,
+              },
             ].map((t) => (
               <button
                 key={t.id}
@@ -560,54 +576,15 @@ export default function ProductDetailPage() {
                 fontSize: 14,
               }}
             >
-              <p style={{ marginBottom: 16 }}>{product.description}</p>
-              <h4 style={{ color: "#2C1810", marginBottom: 10 }}>
-                Thành phần chính:
-              </h4>
-              <ul
-                style={{
-                  paddingLeft: 20,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                }}
-              >
-                {selectedVariant.items.map((item, i) => (
-                  <li key={i} style={{ color: "#555" }}>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div
-                style={{
-                  marginTop: 24,
-                  padding: 20,
-                  background: "#fff8f5",
-                  borderRadius: 12,
-                  border: "1px solid #f0d8d0",
-                }}
-              >
-                <h4 style={{ color: "#c0392b", marginBottom: 10 }}>
-                  🌿 Công dụng sức khỏe:
-                </h4>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {product.benefits.map((b) => (
-                    <span
-                      key={b}
-                      style={{
-                        background: "#c0392b",
-                        color: "#fff",
-                        borderRadius: 20,
-                        padding: "5px 14px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {b.replace(/-/g, " ")}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <p style={{ marginBottom: 16 }}>
+                {product.description || "Chưa có mô tả."}
+              </p>
+              {product.content && (
+                <div
+                  dangerouslySetInnerHTML={{ __html: product.content }}
+                  style={{ marginTop: 16 }}
+                />
+              )}
             </div>
           ) : (
             <ReviewSection product={product} />

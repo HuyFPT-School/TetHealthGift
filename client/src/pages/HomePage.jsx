@@ -1,12 +1,8 @@
-// FILE: src/pages/HomePage.jsx
-// Header & Footer đã có trong PublicLayout (App.jsx) — không import lại
-
 import Hero from "../components/home/Hero";
-import CategoryTabs from "../components/home/CategoryTabs";
 import ProductGrid from "../components/home/ProductGrid";
 import AboutSection from "../components/home/AboutSection";
 import ContactBanner from "../components/home/ContactBanner";
-import FeatureBar from "../components/home/FeatureBar";
+import NewsletterSection from "../components/home/NewsletterSection";
 
 export default function HomePage() {
   return (
@@ -17,11 +13,10 @@ export default function HomePage() {
       }}
     >
       <Hero />
-      <CategoryTabs />
       <ProductGrid />
+      <NewsletterSection />
       <AboutSection />
       <ContactBanner />
-      <FeatureBar />
     </div>
   );
 }

@@ -4,11 +4,11 @@ import {
   Route,
   Outlet,
 } from "react-router-dom";
-
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
 import HomePage from "./pages/HomePage";
 import ProductListingPage from "./components/PLP/ProductListingPage";
+import ProductDetailPage from "./components/PDP/ProductDetailPage";
 
 function PublicLayout() {
   return (
@@ -31,6 +31,7 @@ function App() {
         <Route element={<PublicLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/qua-tet" element={<ProductListingPage />} />
+          <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
         </Route>
       </Routes>
     </Router>
