@@ -168,17 +168,55 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      id,
-      { orderStatus },
-      { new: true, runValidators: true },
-    )
-      .populate("customer", "fullname email phone")
-      .populate("cartItems.product");
-
+    const order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
+
+    // Validate trạng thái chuyển đổi hợp lệ
+    const validTransitions = {
+      processing: ["shipped", "cancelled"],
+      shipped: ["delivered", "cancelled"],
+      delivered: [], // Không thể chuyển từ delivered sang trạng thái khác
+      cancelled: [], // Không thể chuyển từ cancelled sang trạng thái khác
+    };
+
+    const currentStatus = order.orderStatus;
+    if (!validTransitions[currentStatus]) {
+      return res.status(400).json({
+        message: "Trạng thái đơn hàng hiện tại không hợp lệ",
+      });
+    }
+
+    if (!validTransitions[currentStatus].includes(orderStatus)) {
+      return res.status(400).json({
+        message: `Không thể chuyển từ trạng thái "${currentStatus}" sang "${orderStatus}"`,
+      });
+    }
+
+    // Nếu chuyển sang cancelled, hoàn trả số lượng sản phẩm
+    if (orderStatus === "cancelled") {
+      // Kiểm tra payment status
+      if (order.paymentStatus === "paid" && order.paymentMethod !== "cod") {
+        return res.status(400).json({
+          message:
+            "Không thể hủy đơn hàng đã thanh toán online. Cần xử lý hoàn tiền trước",
+        });
+      }
+
+      for (const item of order.cartItems) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { quantity: item.quantity },
+        });
+      }
+
+      order.paymentStatus = "failed";
+    }
+
+    order.orderStatus = orderStatus;
+    await order.save();
+    await order.populate("customer", "fullname email phone");
+    await order.populate("cartItems.product");
 
     res.status(200).json({
       message: "Cập nhật trạng thái đơn hàng thành công",
@@ -230,12 +268,29 @@ const cancelOrder = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
-    if (order.orderStatus === "delivered") {
+    // Kiểm tra đơn hàng đã bị hủy chưa
+    if (order.orderStatus === "cancelled") {
       return res.status(400).json({
-        message: "Không thể hủy đơn hàng đã giao",
+        message: "Đơn hàng đã bị hủy trước đó",
       });
     }
 
+    // Không thể hủy đơn đã giao hoặc đang vận chuyển
+    if (order.orderStatus === "delivered" || order.orderStatus === "shipped") {
+      return res.status(400).json({
+        message: "Không thể hủy đơn hàng đã giao hoặc đang vận chuyển",
+      });
+    }
+
+    // Không cho phép hủy đơn hàng đã thanh toán online (cần xử lý hoàn tiền)
+    if (order.paymentStatus === "paid" && order.paymentMethod !== "cod") {
+      return res.status(400).json({
+        message:
+          "Không thể hủy đơn hàng đã thanh toán online. Vui lòng liên hệ hỗ trợ để được hoàn tiền",
+      });
+    }
+
+    // Hoàn trả số lượng sản phẩm vào kho
     for (const item of order.cartItems) {
       await Product.findByIdAndUpdate(item.product, {
         $inc: { quantity: item.quantity },
@@ -243,6 +298,7 @@ const cancelOrder = async (req, res) => {
     }
 
     order.orderStatus = "cancelled";
+    order.paymentStatus = "failed";
     await order.save();
 
     res.status(200).json({
@@ -257,11 +313,32 @@ const cancelOrder = async (req, res) => {
 const deleteOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await Order.findByIdAndDelete(id);
+    const order = await Order.findById(id);
 
     if (!order) {
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
+
+    // Chỉ cho phép xóa đơn hàng đã hủy hoặc đã giao
+    if (
+      order.orderStatus !== "cancelled" &&
+      order.orderStatus !== "delivered"
+    ) {
+      return res.status(400).json({
+        message: "Chỉ có thể xóa đơn hàng đã hủy hoặc đã giao",
+      });
+    }
+
+    // Nếu đơn hàng chưa bị hủy và chưa giao, hoàn trả số lượng sản phẩm
+    if (order.orderStatus === "processing" || order.orderStatus === "shipped") {
+      for (const item of order.cartItems) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { quantity: item.quantity },
+        });
+      }
+    }
+
+    await Order.findByIdAndDelete(id);
 
     res.status(200).json({
       message: "Xóa đơn hàng thành công",
