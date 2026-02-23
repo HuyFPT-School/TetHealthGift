@@ -210,6 +210,10 @@ router.put(
  * /api/products/{id}:
  *   delete:
  *     summary: Delete product (Admin only)
+ *     description: |
+ *       Xóa sản phẩm với các quy tắc:
+ *       - Không thể xóa sản phẩm đang có trong đơn hàng đang xử lý hoặc vận chuyển
+ *       - Đảm bảo tính toàn vẹn dữ liệu của các đơn hàng hiện có
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -223,6 +227,8 @@ router.put(
  *     responses:
  *       200:
  *         description: Product deleted successfully
+ *       400:
+ *         description: Cannot delete product (exists in pending orders)
  *       404:
  *         description: Product not found
  *       401:

@@ -1,4 +1,5 @@
 const Product = require("../models/ProductModel");
+const Order = require("../models/OrderModel");
 
 const getAllProducts = async (req, res) => {
   try {
@@ -104,11 +105,25 @@ const updateProduct = async (req, res) => {
 const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findByIdAndDelete(id);
+    const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
+
+    // Kiểm tra xem sản phẩm có trong đơn hàng nào đang xử lý không
+    const ordersWithProduct = await Order.findOne({
+      "cartItems.product": id,
+      orderStatus: { $in: ["processing", "shipped"] },
+    });
+
+    if (ordersWithProduct) {
+      return res.status(400).json({
+        message: "Không thể xóa sản phẩm đang có trong đơn hàng đang xử lý hoặc vận chuyển",
+      });
+    }
+
+    await Product.findByIdAndDelete(id);
 
     res.status(200).json({
       message: "Xóa sản phẩm thành công",

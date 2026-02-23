@@ -110,7 +110,12 @@ const token = async (req, res) => {
           }
 
           const newRefreshToken = jwt.sign(
-            { id: user.id, email: user.email, name: user.name, role: userRecord.role },
+            {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: userRecord.role,
+            },
             process.env.REFRESH_TOKEN_SECRET,
             { expiresIn: "7d" },
           );
@@ -349,7 +354,7 @@ const verifyEmail = async (req, res) => {
     });
 
     const refreshToken = jwt.sign(
-      { id: user._id, email: user.email, name: user.fullname, role: user.role, },
+      { id: user._id, email: user.email, name: user.fullname, role: user.role },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" },
     );
@@ -368,7 +373,7 @@ const verifyEmail = async (req, res) => {
       accessToken,
     });
   } catch (error) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: error.message });
   }
 };
 

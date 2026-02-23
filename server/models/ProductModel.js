@@ -15,7 +15,7 @@ const productSchema = new mongoose.Schema(
     tags: [String],
     discountPrice: { type: Number },
     quantity: { type: Number, default: 0, required: true },
-    imageUrl: [{ type: String, required: true }],
+    imageUrl: { type: String, required: true },
     comments: [
       {
         rating: {

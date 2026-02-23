@@ -9,8 +9,9 @@ const user = new mongoose.Schema(
       lowercase: true,
     },
     phone: {
+      type: String,
       unique: true,
-      type: Number,
+      trim: true,
     },
     fullname: {
       type: String,
