@@ -1,12 +1,8 @@
-// ============================================================
 // FILE: src/components/PLP/SearchBar.jsx
-// Thanh tìm kiếm có debounce + suggestions tối ưu tốc độ
-// ============================================================
+// Tìm kiếm có debounce, gợi ý từ data thật (props), không dùng mockdata
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { PRODUCTS } from "../../services/productService";
 
-// Debounce hook
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -16,27 +12,32 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-export default function SearchBar({ value, onChange }) {
+export default function SearchBar({ value, onChange, products = [] }) {
   const [localValue, setLocalValue] = useState(value);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const debouncedValue = useDebounce(localValue, 280); // 280ms debounce
+  const debouncedValue = useDebounce(localValue, 300);
   const inputRef = useRef(null);
   const wrapRef = useRef(null);
 
-  // Propagate debounced value up
   useEffect(() => {
     onChange(debouncedValue);
   }, [debouncedValue, onChange]);
 
-  // Suggestions = product names matching input (memoized via filter)
+  // Sync nếu value từ ngoài thay đổi (vd: reset filter)
+  useEffect(() => {
+    if (value !== localValue) setLocalValue(value);
+  }, [value]);
+
+  // Gợi ý từ products đã fetch
   const suggestions =
     localValue.length > 1
-      ? PRODUCTS.filter((p) =>
-          p.name.toLowerCase().includes(localValue.toLowerCase()),
-        ).slice(0, 5)
+      ? products
+          .filter((p) =>
+            p.name?.toLowerCase().includes(localValue.toLowerCase()),
+          )
+          .slice(0, 5)
       : [];
 
-  // Click outside to close
   useEffect(() => {
     const handler = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target))
@@ -61,13 +62,16 @@ export default function SearchBar({ value, onChange }) {
     inputRef.current?.focus();
   };
 
+  // Lấy ảnh từ imageUrl array
+  const getImage = (p) =>
+    Array.isArray(p.imageUrl) ? p.imageUrl[0] : p.imageUrl;
+
   return (
     <div ref={wrapRef} style={{ position: "relative", maxWidth: 560 }}>
       <div
         style={{
           display: "flex",
-          border: "2px solid",
-          borderColor: showSuggestions ? "#c0392b" : "#e0c0bc",
+          border: `2px solid ${showSuggestions ? "#c0392b" : "#e0c0bc"}`,
           borderRadius: 10,
           overflow: "visible",
           background: "#fff",
@@ -94,7 +98,7 @@ export default function SearchBar({ value, onChange }) {
             setShowSuggestions(true);
           }}
           onFocus={() => setShowSuggestions(true)}
-          placeholder="Tìm kiếm sản phẩm, thảo dược, công dụng..."
+          placeholder="Tìm kiếm sản phẩm..."
           style={{
             flex: 1,
             padding: "11px 10px",
@@ -138,7 +142,7 @@ export default function SearchBar({ value, onChange }) {
         </button>
       </div>
 
-      {/* Suggestions dropdown */}
+      {/* Dropdown gợi ý */}
       {showSuggestions && suggestions.length > 0 && (
         <div
           style={{
@@ -156,7 +160,7 @@ export default function SearchBar({ value, onChange }) {
         >
           {suggestions.map((p) => (
             <div
-              key={p.id}
+              key={p._id || p.id}
               onClick={() => handleSelect(p.name)}
               style={{
                 display: "flex",
@@ -171,7 +175,29 @@ export default function SearchBar({ value, onChange }) {
               }
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
             >
-              <span style={{ fontSize: 24 }}>{p.images[0]}</span>
+              {getImage(p) ? (
+                <img
+                  src={getImage(p)}
+                  alt={p.name}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    objectFit: "cover",
+                    borderRadius: 6,
+                    flexShrink: 0,
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    background: "#f0e0d8",
+                    borderRadius: 6,
+                    flexShrink: 0,
+                  }}
+                />
+              )}
               <div>
                 <div
                   style={{ fontSize: 13, fontWeight: 600, color: "#2C1810" }}
@@ -181,7 +207,9 @@ export default function SearchBar({ value, onChange }) {
                 <div
                   style={{ fontSize: 11, color: "#c0392b", fontWeight: 700 }}
                 >
-                  {(p.price / 1000).toFixed(0)}k đ
+                  {typeof p.price === "number"
+                    ? p.price.toLocaleString("vi-VN") + " đ"
+                    : p.price}
                 </div>
               </div>
             </div>

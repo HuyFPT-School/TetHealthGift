@@ -1,12 +1,19 @@
-// ============================================================
 // FILE: src/components/PLP/ProductCard.jsx
-// Card sản phẩm có lazy loading + tối ưu hiệu năng
-// ============================================================
+// Dùng data thật từ BE (imageUrl là array, price là number)
 
 import { useState, useRef, useEffect } from "react";
-import { formatPrice } from "../../services/productService";
+import { formatPrice, calcDiscount } from "../../services/productService";
 
-// Custom hook: Intersection Observer để lazy render
+const FALLBACK_IMG =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='200' viewBox='0 0 220 200'%3E%3Crect width='220' height='200' fill='%23f5e8e4'/%3E%3Ctext x='110' y='95' text-anchor='middle' font-size='32' fill='%23d4a89a'%3E%F0%9F%8E%81%3C/text%3E%3Ctext x='110' y='125' text-anchor='middle' font-size='12' fill='%23c0a09a'%3EKh%C3%B4ng c%C3%B3 %E1%BA%A3nh%3C/text%3E%3C/svg%3E";
+
+const sanitizeImage = (url) => {
+  if (!url || typeof url !== "string") return null;
+  if (url.includes("via.placeholder.com") || url.includes("placeholder.com"))
+    return null;
+  return url;
+};
+
 function useInView(threshold = 0.1) {
   const ref = useRef(null);
   const [inView, setInView] = useState(false);
@@ -28,40 +35,53 @@ function useInView(threshold = 0.1) {
 }
 
 function StarRating({ rating }) {
+  const r = Math.round(rating || 0);
   return (
     <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
       {[1, 2, 3, 4, 5].map((i) => (
         <span
           key={i}
-          style={{
-            fontSize: 11,
-            color: i <= Math.round(rating) ? "#D4AF37" : "#ddd",
-          }}
+          style={{ fontSize: 11, color: i <= r ? "#D4AF37" : "#ddd" }}
         >
           ★
         </span>
       ))}
-      <span style={{ fontSize: 11, color: "#888", marginLeft: 4 }}>
-        {rating}
-      </span>
+      {rating > 0 && (
+        <span style={{ fontSize: 11, color: "#888", marginLeft: 4 }}>
+          {rating.toFixed(1)}
+        </span>
+      )}
     </div>
   );
 }
 
-export default function ProductCard({ product, index, onClick }) {
+export default function ProductCard({ product, index = 0, onClick }) {
   const [ref, inView] = useInView();
   const [hovered, setHovered] = useState(false);
   const [added, setAdded] = useState(false);
 
+  // imageUrl từ BE là array → lấy phần tử đầu, lọc placeholder
+  const imageUrl = sanitizeImage(
+    Array.isArray(product.imageUrl) ? product.imageUrl[0] : product.imageUrl,
+  );
+
+  // Tính điểm đánh giá trung bình từ comments
+  const avgRating = product.comments?.length
+    ? product.comments.reduce((s, c) => s + c.rating, 0) /
+      product.comments.length
+    : 0;
+
+  const discount = calcDiscount(product.price, product.discountPrice);
+  const inStock = product.quantity > 0;
+
   const handleAdd = (e) => {
     e.stopPropagation();
+    if (!inStock) return;
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   };
 
-  const discount = Math.round(
-    ((product.originalPrice - product.price) / product.originalPrice) * 100,
-  );
+  const tags = Array.isArray(product.tags) ? product.tags : [];
 
   return (
     <div
@@ -84,54 +104,34 @@ export default function ProductCard({ product, index, onClick }) {
             : "translateY(0)"
           : "translateY(24px)",
         opacity: inView ? 1 : 0,
-        transitionDelay: `${index * 0.05}s`,
+        transitionDelay: `${index * 0.04}s`,
         position: "relative",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Badge */}
-      {product.badge && (
+      {/* SALE badge */}
+      {discount > 0 && (
         <div
           style={{
             position: "absolute",
             top: 10,
             left: 10,
             zIndex: 2,
-            background: product.badgeColor,
+            background: "#e74c3c",
             color: "#fff",
-            fontSize: 10,
-            fontWeight: 700,
-            padding: "3px 9px",
-            borderRadius: 20,
-            letterSpacing: "0.5px",
-          }}
-        >
-          {product.badge}
-        </div>
-      )}
-
-      {/* Discount badge */}
-      {discount > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            zIndex: 2,
-            background: "#fff",
-            color: "#c0392b",
             fontSize: 11,
             fontWeight: 800,
-            padding: "3px 8px",
+            padding: "3px 9px",
             borderRadius: 20,
-            border: "1.5px solid #c0392b",
           }}
         >
           -{discount}%
         </div>
       )}
 
-      {/* Out of stock overlay */}
-      {!product.inStock && (
+      {/* Hết hàng overlay */}
+      {!inStock && (
         <div
           style={{
             position: "absolute",
@@ -159,58 +159,58 @@ export default function ProductCard({ product, index, onClick }) {
         </div>
       )}
 
-      {/* Image area - lazy loaded */}
+      {/* Ảnh sản phẩm */}
       <div
         style={{
-          height: 190,
-          background: product.gradient,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
+          height: 200,
           overflow: "hidden",
-          transition: "height .3s",
+          background: "#f8f0ec",
+          position: "relative",
         }}
       >
-        {inView && (
-          <>
-            <div
-              style={{
-                fontSize: hovered ? "5.5rem" : "4.5rem",
-                transition: "font-size .3s",
-                filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))",
-                userSelect: "none",
-              }}
-            >
-              {product.images[0]}
-            </div>
-            {hovered && (
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: 12,
-                  padding: "10px 0 14px",
-                  background: "linear-gradient(transparent, rgba(0,0,0,0.3))",
-                }}
-              >
-                {product.images.slice(1).map((img, i) => (
-                  <span key={i} style={{ fontSize: "1.6rem", opacity: 0.85 }}>
-                    {img}
-                  </span>
-                ))}
-              </div>
-            )}
-          </>
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={product.name}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+              transition: "transform .4s ease",
+              transform: hovered ? "scale(1.06)" : "scale(1)",
+            }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = FALLBACK_IMG;
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#ccc",
+              fontSize: 13,
+            }}
+          >
+            Không có ảnh
+          </div>
         )}
       </div>
 
-      {/* Info */}
-      <div style={{ padding: "14px 16px 16px" }}>
+      {/* Nội dung */}
+      <div
+        style={{
+          padding: "14px 14px 16px",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <h3
           style={{
             fontSize: 13,
@@ -218,7 +218,7 @@ export default function ProductCard({ product, index, onClick }) {
             color: "#2C1810",
             marginBottom: 6,
             lineHeight: 1.4,
-            height: 38,
+            minHeight: 38,
             overflow: "hidden",
             display: "-webkit-box",
             WebkitLineClamp: 2,
@@ -228,80 +228,89 @@ export default function ProductCard({ product, index, onClick }) {
           {product.name}
         </h3>
 
-        <StarRating rating={product.rating} />
-        <span
-          style={{
-            fontSize: 11,
-            color: "#aaa",
-            marginTop: 2,
-            display: "block",
-          }}
-        >
-          {product.reviewCount} đánh giá
-        </span>
+        {/* Rating */}
+        {avgRating > 0 && (
+          <div style={{ marginBottom: 6 }}>
+            <StarRating rating={avgRating} />
+            <span style={{ fontSize: 11, color: "#aaa" }}>
+              {product.comments?.length} đánh giá
+            </span>
+          </div>
+        )}
 
-        <div
-          style={{
-            marginTop: 10,
-            display: "flex",
-            alignItems: "baseline",
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 16, fontWeight: 800, color: "#c0392b" }}>
-            {formatPrice(product.price)}
-          </span>
-          {product.originalPrice > product.price && (
-            <span
+        {/* Giá */}
+        <div style={{ marginTop: "auto", marginBottom: 10 }}>
+          {product.discountPrice && product.discountPrice < product.price && (
+            <p
               style={{
                 fontSize: 12,
                 color: "#aaa",
+                margin: "0 0 2px",
                 textDecoration: "line-through",
               }}
             >
-              {formatPrice(product.originalPrice)}
-            </span>
+              {formatPrice(product.discountPrice)}
+            </p>
           )}
+          <p
+            style={{
+              fontSize: 17,
+              fontWeight: 800,
+              color: "#c0392b",
+              margin: 0,
+            }}
+          >
+            {formatPrice(product.price)}
+          </p>
         </div>
 
-        {/* Variants quick preview */}
-        <div style={{ marginTop: 10, display: "flex", gap: 6 }}>
-          {product.variants.map((v) => (
-            <span
-              key={v.id}
-              style={{
-                fontSize: 10,
-                background: "#fdf0ed",
-                color: "#c0392b",
-                border: "1px solid #f0d0ca",
-                borderRadius: 4,
-                padding: "3px 8px",
-                fontWeight: 600,
-              }}
-            >
-              {v.label.split("–")[0].trim()}
-            </span>
-          ))}
-        </div>
+        {/* Tags */}
+        {tags.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              gap: 4,
+              flexWrap: "wrap",
+              marginBottom: 10,
+            }}
+          >
+            {tags.slice(0, 3).map((tag, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: 10,
+                  background: "#fdf0ed",
+                  color: "#c0392b",
+                  border: "1px solid #f0d0ca",
+                  borderRadius: 4,
+                  padding: "2px 7px",
+                  fontWeight: 600,
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
+        {/* Nút mua */}
         <button
           onClick={handleAdd}
-          disabled={!product.inStock}
+          disabled={!inStock}
           style={{
-            marginTop: 12,
             width: "100%",
-            padding: "9px",
+            padding: "10px",
             background: added
               ? "#27ae60"
-              : product.inStock
+              : inStock
                 ? hovered
                   ? "#c0392b"
                   : "transparent"
                 : "#eee",
-            border: `1.5px solid ${added ? "#27ae60" : product.inStock ? "#c0392b" : "#ddd"}`,
+            border: `1.5px solid ${added ? "#27ae60" : inStock ? "#c0392b" : "#ddd"}`,
             color: added
               ? "#fff"
-              : product.inStock
+              : inStock
                 ? hovered
                   ? "#fff"
                   : "#c0392b"
@@ -310,16 +319,11 @@ export default function ProductCard({ product, index, onClick }) {
             fontFamily: "inherit",
             fontWeight: 700,
             fontSize: 12,
-            cursor: product.inStock ? "pointer" : "not-allowed",
+            cursor: inStock ? "pointer" : "not-allowed",
             transition: "all .25s",
-            letterSpacing: "0.3px",
           }}
         >
-          {added
-            ? "✓ Đã thêm!"
-            : product.inStock
-              ? "🛒 Thêm vào giỏ"
-              : "Hết hàng"}
+          {added ? "✓ Đã thêm!" : inStock ? "🛒 Thêm vào giỏ" : "Hết hàng"}
         </button>
       </div>
     </div>
