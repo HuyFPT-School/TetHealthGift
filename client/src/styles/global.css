@@ -1,0 +1,261 @@
+/* ── Google Font ── */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+
+/* ── CSS Variables ── */
+:root {
+  --red:          #9B1C1C;
+  --red-dark:     #7F1515;
+  --red-light:    #FEE2E2;
+  --red-border:   #FECACA;
+  --gold:         #D4920A;
+  --bg:           #F5F5F5;
+  --white:        #FFFFFF;
+  --dark:         #111111;
+  --dark2:        #333333;
+  --muted:        #888888;
+  --border:       #E0E0E0;
+  --border-light: #F0F0F0;
+  --row-alt:      #FAFAFA;
+  --row-hover:    #FFF8F7;
+  --green:        #166534;
+  --green-bg:     #DCFCE7;
+  --green-border: #BBF7D0;
+  --blue:         #1D4ED8;
+  --blue-bg:      #EFF6FF;
+  --blue-border:  #DBEAFE;
+  --orange:       #C05621;
+  --orange-bg:    #FEF3C7;
+  --shadow-sm:    0 1px 4px rgba(0,0,0,.06);
+  --shadow-md:    0 4px 16px rgba(0,0,0,.10);
+  --shadow-lg:    0 20px 60px rgba(0,0,0,.20);
+  --radius-sm:    8px;
+  --radius-md:    12px;
+  --radius-lg:    14px;
+}
+
+/* ── Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background: var(--bg);
+  color: var(--dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea {
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #ddd; border-radius: 10px; }
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Utility classes ── */
+.fade-in      { animation: fadeIn .25s ease both; }
+.slide-down   { animation: slideDown .2s ease both; }
+
+.row-hover:hover {
+  background: var(--row-hover) !important;
+  cursor: default;
+}
+
+/* ── Shared Input ── */
+.inp {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  outline: none;
+  color: var(--dark);
+  background: var(--white);
+  transition: border-color .15s, box-shadow .15s;
+}
+.inp:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px rgba(155,28,28,.1);
+}
+
+/* ── Shared Buttons ── */
+.btn-primary {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .15s;
+}
+.btn-primary:hover    { background: var(--red-dark); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-outline {
+  background: var(--white);
+  color: var(--dark2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color .15s, color .15s;
+}
+.btn-outline:hover { border-color: var(--red); color: var(--red); }
+
+.btn-icon-blue {
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--blue-border);
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: opacity .15s;
+}
+.btn-icon-red {
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--red-border);
+  background: #FEF2F2;
+  color: #DC2626;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: opacity .15s;
+}
+
+/* ── Modal Overlay ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.modal-box {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  width: 520px;
+  max-width: 96vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn .2s ease;
+}
+
+/* ── Form field ── */
+.field         { margin-bottom: 14px; }
+.field label   {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Table shared ── */
+.tbl               { width: 100%; border-collapse: collapse; }
+.tbl thead tr      { border-bottom: 1px solid var(--border-light); background: var(--row-alt); }
+.tbl thead th      {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tbl tbody tr      { border-bottom: 1px solid #F5F5F5; }
+.tbl tbody td      { padding: 14px 16px; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  animation: slideDown .25s ease;
+}
+.toast.ok    { border-left: 4px solid var(--red); }
+.toast.error { border-left: 4px solid #DC2626; }
+
+/* ── Spinner ── */
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border-top-color: var(--red);
+  animation: spin .7s linear infinite;
+}
+
+/* ── Status badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Pagination ── */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-light);
+  background: var(--row-alt);
+}
+.pagination span { font-size: 13px; color: var(--muted); }
