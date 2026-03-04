@@ -110,24 +110,7 @@ const ProductManagement = () => {
     }
   };
 
-  const exportCSV = () => {
-    const rows = [
-      ["ID","Tên sản phẩm","Danh mục","Giá","Tồn kho","Mô tả"],
-      ...products.map(p => [
-        p._id, p.name,
-        p.category?.name || p.category || "",
-        p.price, p.quantity, p.description || "",
-      ]),
-    ];
-    const csv = rows.map(r =>
-      r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")
-    ).join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
-    a.download = "san-pham.csv";
-    a.click();
-    showT("Đã xuất file Excel");
-  };
+ 
 
   const pageCount = Math.max(1, Math.ceil(total / LIMIT));
 
@@ -158,7 +141,7 @@ const ProductManagement = () => {
             <option key={c._id} value={c._id}>{c.name}</option>
           ))}
         </select>
-        <button onClick={exportCSV} className="btn-outline">Xuất Excel</button>
+
         <button onClick={openAdd}   className="btn-primary">Thêm sản phẩm mới</button>
       </div>
 

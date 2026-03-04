@@ -28,7 +28,14 @@ const OrderManagement = () => {
       const params = new URLSearchParams({ page, limit: LIMIT });
       if (filter) params.set("orderStatus", filter);
       const res = await api.get(`/api/orders?${params}`);
-      let list = res.orders || res.data || res || [];
+
+      // ✅ FIX: backend trả { message, data: [...] }
+      let list = res.data || res.orders || res.docs || [];
+      // Nếu data là object có orders bên trong
+      if (!Array.isArray(list)) {
+        list = list.orders || list.docs || [];
+      }
+
       if (search) {
         const q = search.toLowerCase();
         list = list.filter(o =>
@@ -36,8 +43,9 @@ const OrderManagement = () => {
           (o.customer?.fullname || o.customerId?.fullname || "").toLowerCase().includes(q)
         );
       }
+
       setOrders(list);
-      setTotal(res.total || res.totalOrders || list.length);
+      setTotal(res.total || res.totalOrders || res.data?.total || list.length);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -51,7 +59,7 @@ const OrderManagement = () => {
     setSaving(true);
     try {
       await api.patch(`/api/orders/${id}/status`, { orderStatus });
-      showT(`Da chuyen: ${ORDER_STATUS[orderStatus]?.label || orderStatus}`);
+      showT(`Đã chuyển: ${ORDER_STATUS[orderStatus]?.label || orderStatus}`);
       load();
       if (detail?._id === id) setDetail(o => ({ ...o, orderStatus }));
     } catch (e) {
@@ -62,11 +70,11 @@ const OrderManagement = () => {
   };
 
   const cancelOrder = async (id) => {
-    if (!confirm("Xac nhan huy don hang nay?")) return;
+    if (!confirm("Xác nhận huỷ đơn hàng này?")) return;
     setSaving(true);
     try {
       await api.patch(`/api/orders/${id}/cancel`);
-      showT("Da huy don hang");
+      showT("Đã huỷ đơn hàng");
       load();
       if (detail?._id === id) setDetail(o => ({ ...o, orderStatus: "cancelled" }));
     } catch (e) {
@@ -78,7 +86,7 @@ const OrderManagement = () => {
 
   const exportCSV = () => {
     const rows = [
-      ["ID","Khach hang","SDT","Dia chi","Tong tien","Trang thai","Thanh toan","Ngay tao"],
+      ["ID","Khách hàng","SĐT","Địa chỉ","Tổng tiền","Trạng thái","Thanh toán","Ngày tạo"],
       ...orders.map(o => [
         o._id,
         o.customer?.fullname || o.customerId?.fullname || "",
@@ -95,7 +103,7 @@ const OrderManagement = () => {
     a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
     a.download = "don-hang.csv";
     a.click();
-    showT("Da xuat file Excel");
+    showT("Đã xuất file Excel");
   };
 
   const pageCount    = Math.max(1, Math.ceil(total / LIMIT));
@@ -109,8 +117,8 @@ const OrderManagement = () => {
       {toast && <Toast msg={toast.msg} type={toast.type} />}
 
       <div className="orders-header">
-        <h2 className="orders-title">Danh sach don hang</h2>
-        <button onClick={exportCSV} className="btn-outline">Xuat Excel</button>
+        <h2 className="orders-title">Danh sách đơn hàng</h2>
+        <button onClick={exportCSV} className="btn-outline">⬇ Xuất Excel</button>
       </div>
 
       {/* Status Pills */}
@@ -120,7 +128,7 @@ const OrderManagement = () => {
           style={filter === "" ? { background: "#9B1C1C", color: "#fff", borderColor: "#9B1C1C" } : {}}
           onClick={() => { setFilter(""); setPage(1); }}
         >
-          Tat ca ({total})
+          Tất cả ({total})
         </button>
         {Object.entries(ORDER_STATUS).map(([k, v]) => (
           <button key={k} className="pill"
@@ -137,7 +145,7 @@ const OrderManagement = () => {
         <span className="search-icon">🔍</span>
         <input className="inp" style={{ paddingLeft: 34 }} value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Tim ma don, ten khach hang..." />
+          placeholder="Tìm mã đơn, tên khách hàng..." />
       </div>
 
       {/* Table */}
@@ -145,14 +153,14 @@ const OrderManagement = () => {
         {loading ? (
           <div className="table-loading"><Spinner size={32} /></div>
         ) : error ? (
-          <div className="table-error">{error}</div>
+          <div className="table-error">❌ {error}</div>
         ) : (
           <>
             <div style={{ overflowX: "auto" }}>
               <table className="tbl" style={{ minWidth: 750 }}>
                 <thead>
                   <tr>
-                    {["MA DON","KHACH HANG","SO SP","TONG TIEN","TRANG THAI","THOI GIAN","THAO TAC"].map(h => (
+                    {["MÃ ĐƠN","KHÁCH HÀNG","SỐ SP","TỔNG TIỀN","TRẠNG THÁI","THỜI GIAN","THAO TÁC"].map(h => (
                       <th key={h}>{h}</th>
                     ))}
                   </tr>
@@ -160,7 +168,7 @@ const OrderManagement = () => {
                 <tbody>
                   {orders.map((o, i) => {
                     const st    = ORDER_STATUS[o.orderStatus];
-                    const items = o.cartItems || o.items || [];
+                    const items = o.cartItems || o.items || o.orderItems || [];
                     return (
                       <tr key={o._id} className="row-hover"
                         style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
@@ -171,19 +179,19 @@ const OrderManagement = () => {
                         </td>
                         <td>
                           <div className="customer-name">
-                            {o.customer?.fullname || o.customerId?.fullname || "—"}
+                            {o.customer?.fullname || o.customerId?.fullname || o.userId?.fullname || "—"}
                           </div>
                           <div className="customer-phone">
-                            {o.phone || o.customer?.phone || ""}
+                            {o.phone || o.customer?.phone || o.shippingPhone || ""}
                           </div>
                         </td>
                         <td className="items-count">{items.length} SP</td>
-                        <td className="order-total">{vnd(o.totalPrice)}</td>
+                        <td className="order-total">{vnd(o.totalAmount || o.totalPrice)}</td>
                         <td><StatusBadge status={o.orderStatus} /></td>
                         <td className="order-date">{fmtDate(o.createdAt)}</td>
                         <td>
                           <div className="action-btns">
-                            <button className="link-btn" onClick={() => setDetail(o)}>Chi tiet</button>
+                            <button className="link-btn" onClick={() => setDetail(o)}>Chi tiết</button>
                             {st?.next && (
                               <button className="btn-next" disabled={saving}
                                 onClick={() => updateStatus(o._id, st.next)}>
@@ -192,7 +200,7 @@ const OrderManagement = () => {
                             )}
                             {!["delivered","cancelled"].includes(o.orderStatus) && (
                               <button className="btn-cancel" disabled={saving}
-                                onClick={() => cancelOrder(o._id)}>Huy</button>
+                                onClick={() => cancelOrder(o._id)}>Huỷ</button>
                             )}
                           </div>
                         </td>
@@ -202,19 +210,19 @@ const OrderManagement = () => {
                   {orders.length === 0 && (
                     <tr><td colSpan={7} className="empty-row">
                       <div className="empty-icon">📭</div>
-                      Khong co don hang nao
+                      Không có đơn hàng nào
                     </td></tr>
                   )}
                 </tbody>
               </table>
             </div>
             <div className="pagination">
-              <span>Trang {page}/{pageCount} - {total} don hang</span>
+              <span>Trang {page}/{pageCount} · {total} đơn hàng</span>
               <div style={{ display: "flex", gap: 6 }}>
                 <button className="btn-outline" style={{ padding: "6px 14px" }}
-                  onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1}>Truoc</button>
+                  onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1}>← Trước</button>
                 <button className="btn-outline" style={{ padding: "6px 14px" }}
-                  onClick={() => setPage(p => Math.min(pageCount,p+1))} disabled={page===pageCount}>Sau</button>
+                  onClick={() => setPage(p => Math.min(pageCount,p+1))} disabled={page===pageCount}>Sau →</button>
               </div>
             </div>
           </>
@@ -223,16 +231,16 @@ const OrderManagement = () => {
 
       {/* Detail Modal */}
       {detail && (
-        <Modal title={`Don hang #${detail._id?.slice(-6).toUpperCase()}`}
+        <Modal title={`📋 Đơn hàng #${detail._id?.slice(-6).toUpperCase()}`}
           onClose={() => setDetail(null)} wide>
           <div className="detail-grid">
             {[
-              ["Khach hang",   detail.customer?.fullname || detail.customerId?.fullname || "—"],
-              ["SDT",          detail.phone || detail.customer?.phone || "—"],
-              ["Dia chi",      detail.shippingAddress || "—"],
-              ["Thanh toan",   detail.paymentMethod || "—"],
-              ["TT thanh toan",detail.paymentStatus || "—"],
-              ["Ngay dat",     fmtDate(detail.createdAt)],
+              ["Khách hàng",   detail.customer?.fullname || detail.customerId?.fullname || detail.userId?.fullname || "—"],
+              ["SĐT",          detail.phone || detail.customer?.phone || detail.shippingPhone || "—"],
+              ["Địa chỉ",      detail.shippingAddress || "—"],
+              ["Thanh toán",   detail.paymentMethod || "—"],
+              ["TT thanh toán",detail.paymentStatus || "—"],
+              ["Ngày đặt",     fmtDate(detail.createdAt)],
             ].map(([k,v]) => (
               <div key={k} className="detail-item">
                 <div className="detail-key">{k}</div>
@@ -241,14 +249,14 @@ const OrderManagement = () => {
             ))}
           </div>
 
-          {(detail.cartItems || detail.items || []).length > 0 && (
+          {(detail.cartItems || detail.items || detail.orderItems || []).length > 0 && (
             <div className="items-section">
-              <div className="items-title">San pham trong don</div>
-              {(detail.cartItems || detail.items).map((item, i) => (
+              <div className="items-title">Sản phẩm trong đơn</div>
+              {(detail.cartItems || detail.items || detail.orderItems).map((item, i) => (
                 <div key={i} className={`item-row${i%2===0?" alt":""}`}>
                   <span className="item-name">
-                    {item.name || item.product?.name || `SP ${i+1}`}
-                    {item.quantity && <span className="item-qty"> x {item.quantity}</span>}
+                    {item.name || item.product?.name || item.productId?.name || `SP ${i+1}`}
+                    {item.quantity && <span className="item-qty"> × {item.quantity}</span>}
                   </span>
                   <span className="item-price">{vnd((item.price||0)*(item.quantity||1))}</span>
                 </div>
@@ -257,8 +265,8 @@ const OrderManagement = () => {
           )}
 
           <div className="order-total-box">
-            <div className="total-label">Tong gia tri</div>
-            <div className="total-value">{vnd(detail.totalPrice || detail.totalAmount)}</div>
+            <div className="total-label">Tổng giá trị đơn hàng</div>
+            <div className="total-value">{vnd(detail.totalAmount || detail.totalPrice)}</div>
           </div>
 
           {/* Timeline */}
@@ -284,14 +292,14 @@ const OrderManagement = () => {
             {ORDER_STATUS[detail.orderStatus]?.next && (
               <button className="btn-primary" disabled={saving}
                 onClick={() => updateStatus(detail._id, ORDER_STATUS[detail.orderStatus].next)}>
-                {saving ? <Spinner size={14}/> : `-> ${ORDER_STATUS[ORDER_STATUS[detail.orderStatus].next]?.label}`}
+                {saving ? <Spinner size={14}/> : `→ ${ORDER_STATUS[ORDER_STATUS[detail.orderStatus].next]?.label}`}
               </button>
             )}
             {!["delivered","cancelled"].includes(detail.orderStatus) && (
               <button className="btn-icon-red" style={{ padding:"9px 18px" }}
-                onClick={() => cancelOrder(detail._id)} disabled={saving}>Huy don</button>
+                onClick={() => cancelOrder(detail._id)} disabled={saving}>Huỷ đơn</button>
             )}
-            <button className="btn-outline" onClick={() => setDetail(null)}>Dong</button>
+            <button className="btn-outline" onClick={() => setDetail(null)}>Đóng</button>
           </div>
         </Modal>
       )}

@@ -41,7 +41,7 @@ function App() {
           <Route path="/qua-tet" element={<ProductListingPage />} />
           <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
           <Route path="/admin/products" element={<ProductManagement />} />
-          <Route path="/admin/orders" element={<OrderManagement />} />
+          <Route path="/staff/orders" element={<OrderManagement />} />
           <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
         </Route>
         {/* Auth routes - không cần Header/Footer */}
