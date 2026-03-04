@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchProductById, formatPrice } from "../../services/productService";
 import ReviewSection from "./ReviewSection";
+import { useAuth } from "../../context/AuthContext";
 
 // Ảnh fallback dùng khi URL không load được (tránh external placeholder service)
 const FALLBACK_IMG =
@@ -94,6 +95,7 @@ function QuantitySelector({ value, onChange, max }) {
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -587,7 +589,7 @@ export default function ProductDetailPage() {
               )}
             </div>
           ) : (
-            <ReviewSection product={product} />
+            <ReviewSection product={product} token={token} />
           )}
         </div>
       </div>
