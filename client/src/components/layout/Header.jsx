@@ -1,11 +1,32 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { VscHome } from "react-icons/vsc";
 import { VscGift } from "react-icons/vsc";
 import { VscCodeOss } from "react-icons/vsc";
+import { useAuth } from "../../context/AuthContext";
 export default function Header() {
   const [searchValue, setSearchValue] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setShowUserDropdown(false);
+    navigate("/");
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -60,30 +81,28 @@ export default function Header() {
             style={{
               display: "flex",
               flexDirection: "column",
-              lineHeight: 1,
-              minWidth: "160px",
+              alignItems: "flex-start",
+              gap: "4px",
             }}
           >
+            <img
+              src="/TetHealthGift-logo.png"
+              alt="TetHealthGift"
+              style={{
+                height: "clamp(32px, 5vw, 50px)",
+                width: "auto",
+                objectFit: "contain",
+              }}
+            />
             <span
               style={{
-                fontSize: "10px",
-                color: "#c0392b",
-                fontStyle: "italic",
-                letterSpacing: "2px",
+                fontSize: "clamp(9px, 1.8vw, 11px)",
+                color: "#7a0a0a",
+                fontWeight: "500",
+                whiteSpace: "nowrap",
               }}
             >
-              tet
-            </span>
-            <span
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                color: "#c0392b",
-                fontFamily: "Georgia, serif",
-                letterSpacing: "-0.5px",
-              }}
-            >
-              health<span style={{ color: "#e67e22" }}>gift</span>
+              Quà Tết Sức Khỏe - Trao Gửi Yêu Thương
             </span>
           </div>
         </Link>
@@ -149,6 +168,200 @@ export default function Header() {
             marginLeft: "auto",
           }}
         >
+          {/* User Menu - Conditional Render */}
+          {user ? (
+            <div style={{ position: "relative" }} ref={dropdownRef}>
+              <div
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  cursor: "pointer",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  transition: "background 0.2s",
+                  background: showUserDropdown ? "#f8e8d8" : "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  if (!showUserDropdown)
+                    e.currentTarget.style.background = "#f8f8f8";
+                }}
+                onMouseLeave={(e) => {
+                  if (!showUserDropdown)
+                    e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    background: "#c0392b",
+                    color: "white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                  }}
+                >
+                  {user.name?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <span
+                  style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}
+                >
+                  {user.name || user.email}
+                </span>
+                <svg
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    transition: "transform 0.2s",
+                    transform: showUserDropdown
+                      ? "rotate(180deg)"
+                      : "rotate(0deg)",
+                  }}
+                  fill="none"
+                  stroke="#666"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+
+              {/* Dropdown Menu */}
+              {showUserDropdown && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: "0",
+                    background: "white",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    minWidth: "180px",
+                    overflow: "hidden",
+                    zIndex: 1000,
+                    border: "1px solid #f0e8e0",
+                  }}
+                >
+                  <Link
+                    to="/profile"
+                    onClick={() => setShowUserDropdown(false)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "12px 16px",
+                      fontSize: "14px",
+                      color: "#333",
+                      textDecoration: "none",
+                      transition: "background 0.2s",
+                      borderBottom: "1px solid #f5f5f5",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#f8e8d8")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      fill="none"
+                      stroke="#c0392b"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    Hồ sơ
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "12px 16px",
+                      fontSize: "14px",
+                      color: "#333",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "background 0.2s",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#f8e8d8")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      fill="none"
+                      stroke="#c0392b"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <Link
+                to="/register"
+                style={{
+                  fontSize: "13px",
+                  color: "#666",
+                  textDecoration: "none",
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#c0392b")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
+              >
+                Đăng ký
+              </Link>
+              <span style={{ color: "#ddd" }}>|</span>
+              <Link
+                to="/login"
+                style={{
+                  fontSize: "13px",
+                  color: "#666",
+                  textDecoration: "none",
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#c0392b")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
+              >
+                Đăng nhập
+              </Link>
+            </div>
+          )}
+
           <div
             style={{
               display: "flex",
