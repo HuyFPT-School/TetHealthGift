@@ -1,0 +1,333 @@
+import { useEffect, useMemo, useState } from "react";
+import AccountSidebar from "./components/AccountSidebar";
+import AvatarUploader from "./components/AvatarUploader";
+import ProfileSection from "./components/ProfileSection";
+import PasswordSection from "./components/PasswordSection";
+import { ACCOUNT_SECTIONS, DEFAULT_STATUS } from "./constants";
+import { useAccountProfile } from "./hooks/useAccountProfile";
+import { useAuth } from "../../context/AuthContext";
+
+const SECTION_COMPONENTS = {
+  profile: ProfileSection,
+  password: PasswordSection,
+};
+
+const getDateInputValue = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+};
+
+const buildProfileForm = (profile, fallbackEmail = "") => {
+  // Fix phone: Backend lưu dưới dạng Number, nên số 0 đầu bị mất
+  // Tự động thêm 0 vào đầu nếu phone có 9 chữ số
+  let phoneValue = profile?.phone || "";
+  if (phoneValue && typeof phoneValue === "number") {
+    phoneValue = String(phoneValue);
+  }
+  if (phoneValue && phoneValue.length === 9 && !phoneValue.startsWith("0")) {
+    phoneValue = "0" + phoneValue;
+  }
+
+  return {
+    fullname: profile?.fullname || "",
+    email: profile?.email || fallbackEmail || "",
+    phone: phoneValue,
+    gender: profile?.gender || "",
+    dateOfBirth: getDateInputValue(profile?.dateOfBirth),
+  };
+};
+
+const buildAddressForm = (profile) => ({
+  provinceCode: "",
+  districtCode: "",
+  wardCode: "",
+  region: "",
+  addressLine: "",
+  type: "home",
+});
+
+const formatAddressToString = (addressForm) => {
+  if (!addressForm?.region || !addressForm?.addressLine) {
+    return "";
+  }
+  const typeMap = { home: "Nhà Riêng", office: "Văn Phòng" };
+  const typeLabel = typeMap[addressForm.type] || "";
+  return `${addressForm.addressLine}, ${addressForm.region}${typeLabel ? ` - ${typeLabel}` : ""}`;
+};
+
+export default function AccountPage() {
+  const { user: authUser, updateUser } = useAuth();
+  const {
+    profile,
+    loading,
+    error,
+    updateProfile,
+    updatePassword,
+    refresh,
+    userEmail,
+    userId,
+  } = useAccountProfile();
+
+  const [activeSection, setActiveSection] = useState("profile");
+  const [profileForm, setProfileForm] = useState(
+    buildProfileForm(profile, userEmail),
+  );
+  const [addressForm, setAddressForm] = useState(buildAddressForm(profile));
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [profileStatus, setProfileStatus] = useState(DEFAULT_STATUS);
+  const [passwordStatus, setPasswordStatus] = useState(DEFAULT_STATUS);
+  const [busySection, setBusySection] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+  useEffect(() => {
+    if (profile) {
+      setProfileForm(buildProfileForm(profile, userEmail));
+      setAddressForm(buildAddressForm(profile));
+      // Reset avatar preview to current avatar from profile
+      if (!avatarFile) {
+        setAvatarPreview(profile.avatar || null);
+      }
+      // Update avatar in AuthContext when profile changes
+      if (authUser && profile.avatar && authUser.avatar !== profile.avatar) {
+        updateUser({
+          ...authUser,
+          avatar: profile.avatar,
+        });
+      }
+    }
+  }, [profile, userEmail, authUser, updateUser, avatarFile]);
+
+  // Tự động ẩn thông báo sau 2 giây
+  useEffect(() => {
+    if (!profileStatus.message) return;
+    const timer = setTimeout(() => setProfileStatus(DEFAULT_STATUS), 2000);
+    return () => clearTimeout(timer);
+  }, [profileStatus]);
+
+  useEffect(() => {
+    if (!passwordStatus.message) return;
+    const timer = setTimeout(() => setPasswordStatus(DEFAULT_STATUS), 2000);
+    return () => clearTimeout(timer);
+  }, [passwordStatus]);
+
+  // Cleanup blob URL when component unmounts or preview changes
+  useEffect(() => {
+    return () => {
+      if (avatarPreview && avatarPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  const handleProfileChange = (event) => {
+    const { name, value } = event.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddressChange = (event) => {
+    const { name, value, type, checked } = event.target;
+    setAddressForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handlePasswordChange = (event) => {
+    const { name, value } = event.target;
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (1MB max)
+    if (file.size > 1 * 1024 * 1024) {
+      setProfileStatus({
+        type: "error",
+        message: "Dung lượng file không được vượt quá 1MB.",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      setProfileStatus({
+        type: "error",
+        message: "Chỉ chấp nhận file PNG hoặc JPEG.",
+      });
+      return;
+    }
+
+    // Clear previous error and preview locally
+    setProfileStatus(DEFAULT_STATUS);
+
+    // Revoke old blob URL if exists
+    if (avatarPreview && avatarPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    // Create preview and save file for later upload
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleProfileSubmit = async (event) => {
+    event.preventDefault();
+    setProfileStatus(DEFAULT_STATUS);
+    setBusySection("profile");
+    try {
+      // Upload avatar first if user selected a new one
+      if (avatarFile) {
+        const { uploadAvatar } = await import("./services/accountApi");
+        await uploadAvatar(avatarFile);
+      }
+
+      const addressString = formatAddressToString(addressForm);
+      const payload = {
+        fullname: profileForm.fullname,
+        phone: profileForm.phone ? String(profileForm.phone) : undefined,
+        gender: profileForm.gender,
+        dateOfBirth: profileForm.dateOfBirth || undefined,
+        address: addressString || undefined,
+      };
+      await updateProfile(payload);
+
+      // Clear avatar file after successful upload
+      setAvatarFile(null);
+
+      // Refetch profile to get latest data including new avatar
+      await refresh();
+
+      setProfileStatus({
+        type: "success",
+        message: avatarFile
+          ? "Cập nhật hồ sơ và avatar thành công."
+          : "Cập nhật hồ sơ thành công.",
+      });
+    } catch (error) {
+      setProfileStatus({
+        type: "error",
+        message: error?.message || "Cập nhật hồ sơ thất bại.",
+      });
+    } finally {
+      setBusySection("");
+    }
+  };
+
+  const handlePasswordSubmit = async (event) => {
+    event.preventDefault();
+    setPasswordStatus(DEFAULT_STATUS);
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordStatus({
+        type: "error",
+        message: "Mật khẩu xác nhận không khớp.",
+      });
+      return;
+    }
+    setBusySection("password");
+    try {
+      await updatePassword({
+        email: profile?.email || userEmail,
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      setPasswordStatus({
+        type: "success",
+        message: "Đổi mật khẩu thành công.",
+      });
+      setPasswordForm({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      setPasswordStatus({
+        type: "error",
+        message: error?.message || "Đổi mật khẩu thất bại.",
+      });
+    } finally {
+      setBusySection("");
+    }
+  };
+
+  const ActiveSection = useMemo(
+    () => SECTION_COMPONENTS[activeSection] || ProfileSection,
+    [activeSection],
+  );
+
+  return (
+    <div className="bg-white min-h-screen font-['Inter','Segoe_UI',system-ui,sans-serif]">
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-10">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="space-y-6">
+            <AccountSidebar
+              activeSection={activeSection}
+              onSelect={setActiveSection}
+              user={profile}
+              avatarUrl={avatarPreview || profile?.avatar}
+            />
+          </div>
+
+          <div className="flex-1">
+            <div className="bg-white border border-[#f0d0a0] rounded-[18px] p-6 md:p-8 shadow-[0_12px_30px_rgba(41,10,24,0.06)]">
+              {loading && (
+                <div className="text-[14px] text-[#8b7b84]">
+                  Đang tải thông tin hồ sơ...
+                </div>
+              )}
+              {!loading && error && (
+                <div className="text-[14px] text-[#b71c1c]">{error}</div>
+              )}
+              {!loading && !error && (
+                <div className="flex flex-col lg:flex-row gap-8">
+                  <div className="flex-1">
+                    {activeSection === "profile" ? (
+                      <ProfileSection
+                        value={profileForm}
+                        onChange={handleProfileChange}
+                        onSubmit={handleProfileSubmit}
+                        status={profileStatus}
+                        loading={busySection === "profile"}
+                        addressValue={addressForm}
+                        onAddressChange={handleAddressChange}
+                        profileAddress={profile?.address}
+                      />
+                    ) : (
+                      <ActiveSection
+                        value={
+                          activeSection === "password" ? passwordForm : null
+                        }
+                        onChange={handlePasswordChange}
+                        onSubmit={handlePasswordSubmit}
+                        status={passwordStatus}
+                        loading={busySection === activeSection}
+                      />
+                    )}
+                  </div>
+
+                  {activeSection === "profile" && (
+                    <div className="w-full lg:w-[260px] flex justify-center lg:justify-end">
+                      <AvatarUploader
+                        previewUrl={avatarPreview || profile?.avatar}
+                        onChange={handleAvatarChange}
+                        loading={busySection === "profile"}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

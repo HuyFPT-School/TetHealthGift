@@ -100,7 +100,6 @@ export default function Header() {
           position: "relative",
         }}
       >
-
         {/* Logo */}
         <Link to="/" style={{ textDecoration: "none" }}>
           <div
@@ -253,9 +252,22 @@ export default function Header() {
                     fontWeight: "700",
                     border: "2px solid #F9A825",
                     boxShadow: "0 2px 8px rgba(198,40,40,0.3)",
+                    overflow: "hidden",
                   }}
                 >
-                  {user.name?.charAt(0).toUpperCase() || "U"}
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name || "User"}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    user.name?.charAt(0).toUpperCase() || "U"
+                  )}
                 </div>
                 <span
                   style={{ fontSize: "13px", color: "#555", fontWeight: "500" }}
@@ -291,7 +303,7 @@ export default function Header() {
                   }}
                 >
                   <Link
-                    to="/profile"
+                    to="/account"
                     onClick={() => setShowUserDropdown(false)}
                     style={{
                       display: "flex",
