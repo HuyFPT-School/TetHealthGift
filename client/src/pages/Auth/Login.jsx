@@ -65,13 +65,26 @@ function Login() {
         password: form.password,
       });
       const { accessToken, refreshToken, user } = response?.data || {};
-      if (accessToken) login(accessToken, refreshToken, user);
-      if (user?.role === "Admin") navigate("/admin");
-      else if (user?.role === "Staff") navigate("/staff");
-      else navigate("/");
-    } catch (err) {
-      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || "Không thể kết nối máy chủ.";
-      showStatus({ type: "error", message: msg });
+      if (accessToken) {
+        login(accessToken, refreshToken, user);
+      }
+
+      if (user?.role === "Admin") {
+        navigate("/admin/products");
+      } else if (user?.role === "Staff") {
+        navigate("/staff");
+      } else {
+        navigate("/");
+      }
+    } catch (error) {
+      const serverMessage =
+        error?.response?.data?.error || error?.response?.data?.message;
+      const errorMessage =
+        serverMessage || error?.message || "Không thể kết nối máy chủ.";
+      showStatus({
+        type: "error",
+        message: normalizeErrorMessage(errorMessage),
+      });
     } finally {
       setLoading(false);
     }
