@@ -21,7 +21,7 @@ const sendVerificationEmail = async (to, code, fullname) => {
           ${code}
         </p>
         <p>Mã xác nhận có hiệu lực trong <strong>10 phút</strong>.</p>
-        <p style="color: #999; font-size: 12px; margin-top: 20px;">Chúc bạn một mùa Tết an khang, thịnh vượng! 🧧🎊</p>
+        <p style="color: #999; font-size: 12px; margin-top: 20px;">Chúc bạn một mùa Tết an khang, thịnh vượng!</p>
       </div>
     `,
   };
@@ -49,7 +49,7 @@ const sendResetPassword = async (to, code) => {
       </p>
       <p>Mã này có hiệu lực trong <strong>15 phút</strong>.</p>
       <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
-      <p style="color: #999; font-size: 12px; margin-top: 20px;">Chúc bạn một mùa Tết an khang, thịnh vượng! 🧧🎊</p>
+      <p style="color: #999; font-size: 12px; margin-top: 20px;">Chúc bạn một mùa Tết an khang, thịnh vượng!</p>
     </div>
     `,
   };

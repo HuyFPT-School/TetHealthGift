@@ -1,9 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { VscHome } from "react-icons/vsc";
-import { VscGift } from "react-icons/vsc";
-import { VscCodeOss } from "react-icons/vsc";
+import {
+  Home,
+  Gift,
+  BookOpen,
+  Search,
+  ShoppingCart,
+  User,
+  ChevronDown,
+  LogOut,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+
 export default function Header() {
   const [searchValue, setSearchValue] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -11,7 +19,6 @@ export default function Header() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -36,46 +43,65 @@ export default function Header() {
   };
 
   const navItems = [
-    { label: "Trang chủ", icon: <VscHome size={16} />, to: "/" },
-    { label: "Qùa tết ▾", icon: <VscGift size={16} />, to: "/qua-tet" },
-    { label: "Blog", icon: <VscCodeOss size={16} />, to: "/blog" },
+    { label: "Trang chủ", icon: <Home size={16} />, to: "/" },
+    { label: "Quà tết ▾", icon: <Gift size={16} />, to: "/qua-tet" },
+    { label: "Blog", icon: <BookOpen size={16} />, to: "/blog" },
   ];
 
   return (
-    <header style={{ fontFamily: "'Segoe UI', sans-serif" }}>
+    <header style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       {/* Top announcement bar */}
       <div
         style={{
-          background: "#f8e8d8",
-          color: "#c0392b",
+          background:
+            "linear-gradient(135deg, #C62828 0%, #DC143C 50%, #FF6B35 100%)",
+          color: "#FFF8F0",
           fontSize: "12px",
-          padding: "7px 20px",
+          padding: "8px 20px",
           display: "flex",
           justifyContent: "space-around",
           flexWrap: "wrap",
-          gap: "4px",
+          gap: "8px",
           alignItems: "center",
+          fontWeight: "600",
+          boxShadow: "0 2px 8px rgba(198,40,40,0.2)",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        <span>🚚 Freeship đơn từ 5tr ở HCM</span>
-        <span>🎁 Miễn phí khắc logo từ 20 hộp</span>
-        <span>🏷️ Lựa chọn các loại nhãn theo set</span>
-        <span>💰 Tiết kiệm ngay 5% khi đặt hàng onl</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <strong>Freeship</strong> đơn từ 5tr ở HCM
+        </span>
+        <span style={{ color: "rgba(255,255,255,0.4)" }}>|</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          Miễn phí khắc logo từ <strong>20 hộp</strong>
+        </span>
+        <span style={{ color: "rgba(255,255,255,0.4)" }}>|</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          Lựa chọn nhãn theo set
+        </span>
+        <span style={{ color: "rgba(255,255,255,0.4)" }}>|</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          Tiết kiệm <strong>5%</strong> khi đặt hàng online
+        </span>
       </div>
 
       {/* Main header */}
       <div
         style={{
-          background: "#fff",
-          padding: "12px 40px",
+          background: "linear-gradient(to bottom, #FFFFFF 0%, #FFF8F0 100%)",
+          padding: "14px 40px",
           display: "flex",
           alignItems: "center",
-          gap: "20px",
-          borderBottom: "1px solid #f0e8e0",
+          gap: "24px",
+          borderBottom: "3px solid #F9A825",
+          boxShadow: "0 4px 12px rgba(198,40,40,0.1)",
           flexWrap: "wrap",
+          position: "relative",
         }}
       >
-        {/* Logo → về trang chủ */}
+
+        {/* Logo */}
         <Link to="/" style={{ textDecoration: "none" }}>
           <div
             style={{
@@ -83,23 +109,26 @@ export default function Header() {
               flexDirection: "column",
               alignItems: "flex-start",
               gap: "4px",
+              position: "relative",
             }}
           >
             <img
               src="/TetHealthGift-logo.png"
               alt="TetHealthGift"
               style={{
-                height: "clamp(32px, 5vw, 50px)",
+                height: "clamp(36px, 5vw, 56px)",
                 width: "auto",
                 objectFit: "contain",
+                filter: "drop-shadow(0 2px 8px rgba(198,40,40,0.2))",
               }}
             />
             <span
               style={{
-                fontSize: "clamp(9px, 1.8vw, 11px)",
-                color: "#7a0a0a",
-                fontWeight: "500",
+                fontSize: "clamp(10px, 1.8vw, 12px)",
+                color: "#C62828",
+                fontWeight: "700",
                 whiteSpace: "nowrap",
+                textShadow: "0 1px 2px rgba(198,40,40,0.1)",
               }}
             >
               Quà Tết Sức Khỏe - Trao Gửi Yêu Thương
@@ -107,55 +136,62 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Search */}
+        {/* Search bar */}
         <form
           onSubmit={handleSearch}
           style={{
             flex: 1,
             maxWidth: "600px",
             display: "flex",
-            border: "1.5px solid #ddd",
-            borderRadius: "6px",
+            border: "2px solid #F9A825",
+            borderRadius: "12px",
             overflow: "hidden",
+            boxShadow: "0 2px 8px rgba(249,168,37,0.15)",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "#C62828";
+            e.currentTarget.style.boxShadow = "0 4px 16px rgba(198,40,40,0.2)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "#F9A825";
+            e.currentTarget.style.boxShadow = "0 2px 8px rgba(249,168,37,0.15)";
           }}
         >
           <input
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Nhập từ khoá tìm kiếm"
+            placeholder="Tìm quà Tết sức khỏe..."
             style={{
               flex: 1,
-              padding: "10px 16px",
+              padding: "12px 18px",
               border: "none",
               outline: "none",
               fontSize: "14px",
+              background: "#FFFAF5",
+              color: "#2C1810",
+              fontWeight: "500",
             }}
           />
           <button
             type="submit"
             style={{
-              background: "#e67e22",
+              background: "linear-gradient(135deg, #FF6B35 0%, #C62828 100%)",
               color: "#fff",
               border: "none",
-              padding: "10px 18px",
+              padding: "12px 24px",
               cursor: "pointer",
-              fontSize: "18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "transform 0.2s",
             }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.transform = "scale(1.05)")
+            }
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-              />
-            </svg>
+            <Search size={20} />
           </button>
         </form>
 
@@ -168,7 +204,7 @@ export default function Header() {
             marginLeft: "auto",
           }}
         >
-          {/* User Menu - Conditional Render */}
+          {/* User Menu */}
           {user ? (
             <div style={{ position: "relative" }} ref={dropdownRef}>
               <div
@@ -178,32 +214,45 @@ export default function Header() {
                   alignItems: "center",
                   gap: "8px",
                   cursor: "pointer",
-                  padding: "6px 12px",
-                  borderRadius: "6px",
-                  transition: "background 0.2s",
-                  background: showUserDropdown ? "#f8e8d8" : "transparent",
+                  padding: "8px 14px",
+                  borderRadius: "10px",
+                  transition: "all 0.3s",
+                  background: showUserDropdown
+                    ? "linear-gradient(135deg, #FFE5D4 0%, #FFF5E6 100%)"
+                    : "transparent",
+                  border: showUserDropdown
+                    ? "2px solid #F9A825"
+                    : "2px solid transparent",
                 }}
                 onMouseEnter={(e) => {
-                  if (!showUserDropdown)
-                    e.currentTarget.style.background = "#f8f8f8";
+                  if (!showUserDropdown) {
+                    e.currentTarget.style.background =
+                      "linear-gradient(135deg, #FFF8F0 0%, #FFE5D4 100%)";
+                    e.currentTarget.style.borderColor = "#F9A825";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  if (!showUserDropdown)
+                  if (!showUserDropdown) {
                     e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.borderColor = "transparent";
+                  }
                 }}
               >
                 <div
                   style={{
-                    width: "32px",
-                    height: "32px",
+                    width: "36px",
+                    height: "36px",
                     borderRadius: "50%",
-                    background: "#c0392b",
+                    background:
+                      "linear-gradient(135deg, #C62828 0%, #FF6B35 100%)",
                     color: "white",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "14px",
-                    fontWeight: "600",
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    border: "2px solid #F9A825",
+                    boxShadow: "0 2px 8px rgba(198,40,40,0.3)",
                   }}
                 >
                   {user.name?.charAt(0).toUpperCase() || "U"}
@@ -213,29 +262,19 @@ export default function Header() {
                 >
                   {user.name || user.email}
                 </span>
-                <svg
+                <ChevronDown
+                  size={16}
                   style={{
-                    width: "16px",
-                    height: "16px",
                     transition: "transform 0.2s",
                     transform: showUserDropdown
                       ? "rotate(180deg)"
                       : "rotate(0deg)",
+                    color: "#666",
                   }}
-                  fill="none"
-                  stroke="#666"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                />
               </div>
 
-              {/* Dropdown Menu */}
+              {/* Dropdown */}
               {showUserDropdown && (
                 <div
                   style={{
@@ -272,20 +311,7 @@ export default function Header() {
                       (e.currentTarget.style.background = "transparent")
                     }
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      fill="none"
-                      stroke="#c0392b"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
+                    <User size={18} color="#c0392b" />
                     Hồ sơ
                   </Link>
                   <button
@@ -311,20 +337,7 @@ export default function Header() {
                       (e.currentTarget.style.background = "transparent")
                     }
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      fill="none"
-                      stroke="#c0392b"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                      />
-                    </svg>
+                    <LogOut size={18} color="#c0392b" />
                     Đăng xuất
                   </button>
                 </div>
@@ -362,6 +375,7 @@ export default function Header() {
             </div>
           )}
 
+          {/* Cart */}
           <div
             style={{
               display: "flex",
@@ -373,27 +387,12 @@ export default function Header() {
             }}
           >
             <span style={{ position: "relative" }}>
-              <span style={{ fontSize: "22px" }}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-6"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"
-                  />
-                </svg>
-              </span>
+              <ShoppingCart size={24} color="#555" />
               <span
                 style={{
                   position: "absolute",
-                  top: "-4px",
-                  right: "-6px",
+                  top: "-6px",
+                  right: "-8px",
                   background: "#c0392b",
                   color: "#fff",
                   borderRadius: "50%",
@@ -413,23 +412,49 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation bar */}
       <nav
         style={{
-          background: "#fdf0e8",
-          borderBottom: "1px solid #f0ddd0",
+          background:
+            "linear-gradient(to right, #FFF5E6 0%, #FFE5D4 50%, #FFF5E6 100%)",
+          borderBottom: "2px solid #F9A825",
           padding: "0 40px",
           display: "flex",
           alignItems: "center",
+          boxShadow: "0 2px 8px rgba(198,40,40,0.1)",
+          position: "relative",
         }}
       >
+        <div
+          style={{
+            position: "absolute",
+            left: "10px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            fontSize: "18px",
+          }}
+        >
+          🏮
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            right: "10px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            fontSize: "18px",
+          }}
+        >
+          🏮
+        </div>
+
         <ul
           style={{
             display: "flex",
             listStyle: "none",
             margin: 0,
             padding: 0,
-            gap: 0,
+            gap: "4px",
             flex: 1,
             justifyContent: "center",
           }}
@@ -441,18 +466,32 @@ export default function Header() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "5px",
-                  padding: "14px 18px",
-                  fontSize: "13px",
+                  gap: "6px",
+                  padding: "16px 22px",
+                  fontSize: "14px",
                   fontWeight: "700",
-                  color: "#c0392b",
+                  color: "#C62828",
                   textDecoration: "none",
-                  transition: "color 0.2s",
+                  transition: "all 0.3s",
+                  borderRadius: "8px",
+                  position: "relative",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#e67e22")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#c0392b")}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "linear-gradient(135deg, #FFF8F0 0%, #FFFFFF 100%)";
+                  e.currentTarget.style.color = "#DC143C";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(198,40,40,0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#C62828";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
               >
-                <span>{item.icon}</span>
+                {item.icon}
                 <span>{item.label}</span>
               </Link>
             </li>
