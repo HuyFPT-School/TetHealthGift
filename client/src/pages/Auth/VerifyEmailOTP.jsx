@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import axiosInstance from "@/lib/axios";
-import Footer from "../../components/layout/Footer";
+import { MailCheck, Hash, CheckCircle, RefreshCw, Loader2 } from "lucide-react";
 
 function VerifyEmailOTP() {
   const navigate = useNavigate();
@@ -14,97 +14,47 @@ function VerifyEmailOTP() {
   const statusTimerRef = useRef(null);
 
   useEffect(() => {
-    // Lấy email từ location state hoặc query params
     const emailFromState = location.state?.email;
-    const params = new URLSearchParams(location.search);
-    const emailFromQuery = params.get("email");
-
+    const emailFromQuery = new URLSearchParams(location.search).get("email");
     const userEmail = emailFromState || emailFromQuery;
-
-    if (!userEmail) {
-      // Nếu không có email, redirect về register
-      navigate("/register");
-      return;
-    }
-
+    if (!userEmail) { navigate("/register"); return; }
     setEmail(userEmail);
   }, [location, navigate]);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
-    const hiddenElements = [];
-    const targets = document.querySelectorAll(
-      "header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden",
-    );
-    targets.forEach((element) => {
-      if (!element.dataset.loginHidden) {
-        element.dataset.loginHidden = "true";
-        element.classList.add("hidden");
-        hiddenElements.push(element);
-      }
+    const hidden = [];
+    document.querySelectorAll("header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden").forEach((el) => {
+      if (!el.dataset.loginHidden) { el.dataset.loginHidden = "true"; el.classList.add("hidden"); hidden.push(el); }
     });
-
     return () => {
-      document.body.style.overflow = previousOverflow;
-      hiddenElements.forEach((element) => {
-        if (element.dataset.loginHidden === "true") {
-          delete element.dataset.loginHidden;
-          element.classList.remove("hidden");
-        }
-      });
+      document.body.style.overflow = prev;
+      hidden.forEach((el) => { if (el.dataset.loginHidden === "true") { delete el.dataset.loginHidden; el.classList.remove("hidden"); } });
     };
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (statusTimerRef.current) {
-        clearTimeout(statusTimerRef.current);
-      }
-    };
+    return () => { if (statusTimerRef.current) clearTimeout(statusTimerRef.current); };
   }, []);
 
-  const showStatus = (nextStatus, durationMs = 3500) => {
-    if (statusTimerRef.current) {
-      clearTimeout(statusTimerRef.current);
-    }
+  const showStatus = (nextStatus, ms = 4000) => {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     setStatus(nextStatus);
-    if (nextStatus) {
-      statusTimerRef.current = setTimeout(() => {
-        setStatus(null);
-      }, durationMs);
-    }
+    if (nextStatus) statusTimerRef.current = setTimeout(() => setStatus(null), ms);
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setStatus(null);
     setLoading(true);
-
     try {
-      await axiosInstance.post(`/api/auth/verify-email`, {
-        email: email.trim(),
-        otp: otp.trim(),
-      });
-
-      showStatus({
-        type: "success",
-        message: "Xác thực thành công! Đang chuyển đến trang chủ...",
-      });
-
-      setTimeout(() => {
-        navigate("/");
-      }, 1500);
-    } catch (error) {
-      const serverMessage =
-        error?.response?.data?.error || error?.response?.data?.message;
-      const errorMessage =
-        serverMessage || error?.message || "Không thể xác thực OTP.";
-      showStatus({
-        type: "error",
-        message: errorMessage,
-      });
+      await axiosInstance.post("/api/auth/verify-email", { email: email.trim(), otp: otp.trim() });
+      showStatus({ type: "success", message: "Xác thực thành công! Đang chuyển hướng..." });
+      setTimeout(() => navigate("/"), 1500);
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || "Không thể xác thực OTP.";
+      showStatus({ type: "error", message: msg });
     } finally {
       setLoading(false);
     }
@@ -113,141 +63,112 @@ function VerifyEmailOTP() {
   const handleResendOTP = async () => {
     setStatus(null);
     setResendLoading(true);
-
     try {
-      await axiosInstance.post(`/api/auth/send-reset-otp`, {
-        email: email.trim(),
-      });
-
-      showStatus({
-        type: "success",
-        message: "Đã gửi lại mã OTP. Vui lòng kiểm tra email.",
-      });
-    } catch (error) {
-      const serverMessage =
-        error?.response?.data?.error || error?.response?.data?.message;
-      const errorMessage =
-        serverMessage || error?.message || "Không thể gửi lại OTP.";
-      showStatus({
-        type: "error",
-        message: errorMessage,
-      });
+      await axiosInstance.post("/api/auth/send-reset-otp", { email: email.trim() });
+      showStatus({ type: "success", message: "Đã gửi lại mã OTP. Vui lòng kiểm tra email." });
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || "Không thể gửi lại OTP.";
+      showStatus({ type: "error", message: msg });
     } finally {
       setResendLoading(false);
     }
   };
 
-  const handleOtpInvalid = (event) => {
-    const input = event.target;
-    if (input.validity.valueMissing) {
-      input.setCustomValidity("Vui lòng nhập mã OTP.");
-    } else {
-      input.setCustomValidity("");
-    }
-  };
-
-  const handleInput = (event) => {
-    event.target.setCustomValidity("");
-  };
-
   return (
-    <div className="fixed inset-0 flex flex-col items-stretch justify-start bg-[#f8e8d8] z-[9999] px-6 py-8 text-[#2f2730] font-['Inter','Segoe_UI',system-ui,sans-serif] overflow-y-auto min-h-screen">
-      {status && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 w-[min(520px,90%)] flex justify-center pointer-events-none z-[2]">
-          <div
-            className={`w-full px-[18px] py-3 rounded-[12px] text-[13px] font-semibold tracking-[0.1px] text-center border border-[rgba(255,255,255,0.12)] shadow-[0_12px_30px_rgba(0,0,0,0.24)] backdrop-blur-[10px] animate-[fadeIn_0.25s_ease-out] ${
-              status.type === "success"
-                ? "bg-[#4caf50] text-[#1b5e20]"
-                : "bg-[#e53935] text-white"
-            }`}
-          >
-            {status.message}
-          </div>
+    <div className="fixed inset-0 z-[9999] flex" style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+      {/* LEFT: Brand Panel */}
+      <div className="hidden lg:flex flex-col justify-center items-center w-[45%] relative overflow-hidden"
+        style={{ background: "linear-gradient(145deg, #8B0000 0%, #C62828 45%, #E53935 100%)" }}>
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)"
+        }} />
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-white/5" />
+        <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-white/5" />
+        <div className="relative z-10 flex flex-col items-center px-12 text-center">
+          <img src="/TetHealthGift-logo.png" alt="TetHealthGift" className="w-32 h-32 object-contain mb-8 drop-shadow-2xl" />
+          <h1 className="text-white text-3xl font-black mb-3">Xác thực Email</h1>
+          <p className="text-red-100 text-base font-medium leading-relaxed max-w-xs">
+            Một bước nữa để bảo vệ tài khoản của bạn an toàn
+          </p>
         </div>
-      )}
+      </div>
 
-      <div className="w-full max-w-[1240px] flex items-center justify-between gap-9 px-6 mx-auto mt-[clamp(12px,7.225vh,10.8375vh)] mb-10 max-[480px]:flex-col max-[480px]:items-center max-[480px]:px-0">
-        <div
-          className="flex-1 flex flex-col items-center gap-0 select-none -translate-x-[10%] -translate-y-[15%] scale-[1.2] origin-center"
-          aria-hidden="true"
-        >
-          {/* TetHealthGift Logo */}
-          <img
-            className="w-[406px] h-[406px] block object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
-            src="/TetHealthGift-logo.png"
-            alt="TetHealthGift"
-          />
-          <div className="w-[420px] max-w-full h-auto mt-[-40px] select-none max-[480px]:w-[240px] text-center">
-            <p className="text-[20px] text-[#7a0a0a] font-semibold tracking-wide">
-              Quà Tết Sức Khỏe - Trao Gửi Yêu Thương
+      {/* RIGHT: Form Panel */}
+      <div className="flex-1 flex flex-col justify-center items-center bg-white overflow-y-auto py-10 px-6">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex justify-center mb-8">
+            <img src="/TetHealthGift-logo.png" alt="TetHealthGift" className="h-16 object-contain" />
+          </div>
+
+          {/* Icon + Header */}
+          <div className="mb-8">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: "rgba(198,40,40,0.08)" }}>
+              <MailCheck size={32} className="text-[#C62828]" />
+            </div>
+            <h2 className="text-3xl font-black text-gray-900">Nhập mã OTP</h2>
+            <p className="text-gray-500 text-sm mt-2">
+              Mã xác thực đã được gửi đến{" "}
+              <strong className="text-gray-700">{email}</strong>
             </p>
           </div>
-        </div>
 
-        <div className="w-[420px] bg-white rounded-[16px] border border-[#f0e8e0] shadow-[0_18px_50px_rgba(192,57,43,0.08)] pt-8 px-8 pb-6 mt-[-5%] max-[480px]:w-full max-[480px]:pt-[28px] max-[480px]:px-[22px] max-[480px]:pb-[22px] max-[480px]:mt-0">
-          <h1 className="text-center text-[26px] m-0 text-[#2b2730]">
-            Xác thực Email
-          </h1>
-          <p className="text-center mt-2 mb-7 text-[#8b7b84] text-[14px]">
-            Nhập mã OTP được gửi đến <strong>{email}</strong>
-          </p>
+          {/* Status */}
+          {status && (
+            <div className={`mb-5 px-4 py-3 rounded-xl text-sm font-medium border ${
+              status.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"
+            }`}>
+              {status.message}
+            </div>
+          )}
 
-          <form className="flex flex-col gap-[18px]" onSubmit={handleSubmit}>
-            <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
-              <span className="font-medium">Mã OTP</span>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* OTP input */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                <Hash size={14} className="text-[#C62828]" /> Mã OTP (6 chữ số)
+              </label>
               <input
-                type="text"
-                name="otp"
-                className="w-full h-[44px] px-[14px] rounded-[10px] border-[1.5px] border-[#ddd] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#c0392b] focus:shadow-[0_0_0_3px_rgba(192,57,43,0.15)]"
-                placeholder="Nhập mã OTP (6 chữ số)"
-                value={otp}
+                type="text" name="otp" value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                onInvalid={handleOtpInvalid}
-                onInput={handleInput}
-                maxLength={6}
-                pattern="[0-9]{6}"
-                required
+                maxLength={6} pattern="[0-9]{6}" required
+                placeholder="0  0  0  0  0  0"
+                className="w-full h-14 px-4 rounded-xl border border-gray-200 bg-gray-50 text-center text-2xl font-black tracking-[12px] text-gray-900 outline-none transition-all duration-200 focus:border-[#C62828] focus:bg-white focus:shadow-[0_0_0_3px_rgba(198,40,40,0.1)] hover:border-gray-300"
               />
-            </label>
+            </div>
 
+            {/* Submit */}
             <button
-              className="h-[44px] rounded-[12px] border-0 bg-[#c0392b] text-white font-semibold text-[15px] cursor-pointer shadow-[0_8px_16px_rgba(192,57,43,0.35)] disabled:opacity-70 disabled:cursor-not-allowed"
-              type="submit"
-              disabled={loading}
+              type="submit" disabled={loading}
+              className="h-12 w-full rounded-xl font-bold text-sm text-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] shadow-lg shadow-red-200"
+              style={{ background: "linear-gradient(135deg, #C62828 0%, #E53935 100%)" }}
             >
-              {loading ? "Đang xác thực..." : "Xác thực"}
+              {loading
+                ? <><Loader2 size={18} className="animate-spin" /> Đang xác thực...</>
+                : <><CheckCircle size={18} /> Xác thực</>}
             </button>
           </form>
 
-          <div className="mt-5 text-center text-[13px] text-[#7e6b75]">
-            Không nhận được mã?{" "}
-            <button
-              className="text-[#c0392b] no-underline font-semibold hover:underline bg-transparent border-0 cursor-pointer p-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleResendOTP}
-              disabled={resendLoading || loading}
-            >
-              {resendLoading ? "Đang gửi..." : "Gửi lại OTP"}
-            </button>
+          {/* Resend */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500">
+              Không nhận được mã?{" "}
+              <button
+                onClick={handleResendOTP} disabled={resendLoading || loading}
+                className="text-[#C62828] font-semibold hover:underline bg-transparent border-0 cursor-pointer p-0 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+              >
+                {resendLoading
+                  ? <><Loader2 size={13} className="animate-spin" /> Đang gửi...</>
+                  : <><RefreshCw size={13} /> Gửi lại OTP</>}
+              </button>
+            </p>
+          </div>
+
+          <div className="mt-4 text-center">
+            <Link to="/" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Quay về trang chủ</Link>
           </div>
         </div>
       </div>
-
-      <div className="w-[calc(100%+48px)] bg-white -mx-6 -mb-8 mt-auto pt-[3.25vh] [&_footer]:!block [&_footer]:!bg-white [&_footer]:text-[#2f2730] [&_footer.bg-gray-900]:!bg-white [&_footer_.bg-gray-950]:!bg-white [&_footer_.text-gray-300]:!text-[#5f4c55] [&_footer_.text-gray-400]:!text-[#5f4c55] [&_footer_.text-gray-500]:!text-[#5f4c55] [&_footer_.text-white]:!text-[#2f2730] [&_footer_a]:text-[#2f2730] [&_footer_a:hover]:text-[#2f2730] [&_footer_.border-gray-800]:!border-[#e8dfe3] [&_footer_.border-gray-700]:!border-[#e8dfe3] [&_footer_input]:!bg-white [&_footer_input]:!text-[#2f2730] [&_footer_input]:!border-[#e8dfe3] [&_footer_button]:!bg-[#c0392b] [&_footer_button]:!text-white">
-        <Footer />
-      </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }

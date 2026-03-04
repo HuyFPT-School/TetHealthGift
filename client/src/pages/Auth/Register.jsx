@@ -1,19 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axiosInstance from "@/lib/axios";
-import Footer from "../../components/layout/Footer";
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 const isRegisterPath = () => window.location.pathname === "/register";
 
 function Register() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(isRegisterPath());
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [form, setForm] = useState({ fullName: "", email: "", password: "", confirmPassword: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [status, setStatus] = useState(null);
@@ -21,111 +16,60 @@ function Register() {
   const statusTimerRef = useRef(null);
 
   useEffect(() => {
-    const handlePopState = () => {
-      setIsOpen(isRegisterPath());
-    };
+    const handlePopState = () => setIsOpen(isRegisterPath());
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {
     if (!isOpen) return;
-    const previousOverflow = document.body.style.overflow;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
-    const hiddenElements = [];
-    const targets = document.querySelectorAll(
-      "header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden",
-    );
-    targets.forEach((element) => {
-      if (!element.dataset.loginHidden) {
-        element.dataset.loginHidden = "true";
-        element.classList.add("hidden");
-        hiddenElements.push(element);
-      }
+    const hidden = [];
+    document.querySelectorAll("header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden").forEach((el) => {
+      if (!el.dataset.loginHidden) { el.dataset.loginHidden = "true"; el.classList.add("hidden"); hidden.push(el); }
     });
-
     return () => {
-      document.body.style.overflow = previousOverflow;
-      hiddenElements.forEach((element) => {
-        if (element.dataset.loginHidden === "true") {
-          delete element.dataset.loginHidden;
-          element.classList.remove("hidden");
-        }
-      });
+      document.body.style.overflow = prev;
+      hidden.forEach((el) => { if (el.dataset.loginHidden === "true") { delete el.dataset.loginHidden; el.classList.remove("hidden"); } });
     };
   }, [isOpen]);
 
   useEffect(() => {
-    return () => {
-      if (statusTimerRef.current) {
-        clearTimeout(statusTimerRef.current);
-      }
-    };
+    return () => { if (statusTimerRef.current) clearTimeout(statusTimerRef.current); };
   }, []);
 
-  const showStatus = (nextStatus, durationMs = 3500) => {
-    if (statusTimerRef.current) {
-      clearTimeout(statusTimerRef.current);
-    }
+  const showStatus = (nextStatus, ms = 4000) => {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     setStatus(nextStatus);
-    if (nextStatus) {
-      statusTimerRef.current = setTimeout(() => {
-        setStatus(null);
-      }, durationMs);
-    }
+    if (nextStatus) statusTimerRef.current = setTimeout(() => setStatus(null), ms);
   };
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((p) => ({ ...p, [name]: value }));
   };
 
-  const handleLoginLink = (event) => {
-    event.preventDefault();
-    if (window.location.pathname !== "/login") {
-      window.history.pushState({}, "", "/login");
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    }
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setStatus(null);
     setLoading(true);
-
     if (form.password !== form.confirmPassword) {
-      showStatus({
-        type: "error",
-        message: "Mật khẩu xác nhận không khớp.",
-      });
+      showStatus({ type: "error", message: "Mật khẩu xác nhận không khớp." });
       setLoading(false);
       return;
     }
-    const payload = {
-      fullname: form.fullName.trim(),
-      email: form.email.trim(),
-      password: form.password,
-    };
-
     try {
-      await axiosInstance.post(`/api/auth/register`, payload);
-      showStatus({
-        type: "success",
-        message: "Đăng ký thành công! Vui lòng xác thực email.",
+      await axiosInstance.post("/api/auth/register", {
+        fullname: form.fullName.trim(),
+        email: form.email.trim(),
+        password: form.password,
       });
-      setTimeout(() => {
-        navigate("/verify-email", { state: { email: payload.email } });
-      }, 1500);
-    } catch (error) {
-      const serverMessage =
-        error?.response?.data?.error || error?.response?.data?.message;
-      const errorMessage =
-        serverMessage || error?.message || "Không thể kết nối máy chủ.";
-      showStatus({
-        type: "error",
-        message: errorMessage,
-      });
+      showStatus({ type: "success", message: "Đăng ký thành công! Vui lòng xác thực email." });
+      setTimeout(() => navigate("/verify-email", { state: { email: form.email.trim() } }), 1500);
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || "Không thể kết nối máy chủ.";
+      showStatus({ type: "error", message: msg });
     } finally {
       setLoading(false);
     }
@@ -134,232 +78,151 @@ function Register() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex flex-col items-stretch justify-start bg-[#f8e8d8] z-[9999] px-6 py-8 text-[#2f2730] font-['Inter','Segoe_UI',system-ui,sans-serif] overflow-y-auto min-h-screen">
-      {status && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 w-[min(520px,90%)] flex justify-center pointer-events-none z-[2]">
-          <div
-            className={`w-full px-[18px] py-3 rounded-[12px] text-[13px] font-semibold tracking-[0.1px] text-center border border-[rgba(255,255,255,0.12)] shadow-[0_12px_30px_rgba(0,0,0,0.24)] backdrop-blur-[10px] animate-[fadeIn_0.25s_ease-out] ${
-              status.type === "success"
-                ? "bg-[#4caf50] text-[#1b5e20]"
-                : "bg-[#e53935] text-white"
-            }`}
-          >
-            {status.message}
-          </div>
-        </div>
-      )}
-      <div className="w-full max-w-[1240px] flex items-center justify-between gap-9 px-6 mx-auto mt-[clamp(12px,7.225vh,10.8375vh)] mb-10 max-[480px]:flex-col max-[480px]:items-center max-[480px]:px-0">
-        <div
-          className="flex-1 flex flex-col items-center gap-0 select-none -translate-x-[10%] -translate-y-[15%] scale-[1.2] origin-center"
-          aria-hidden="true"
-        >
-          {/* TetHealthGift Logo */}
-          <img
-            className="w-[406px] h-[406px] block object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
-            src="/TetHealthGift-logo.png"
-            alt="TetHealthGift"
-          />
-          <div className="w-[420px] max-w-full h-auto mt-[-40px] select-none max-[480px]:w-[240px] text-center">
-            <p className="text-[20px] text-[#7a0a0a] font-semibold tracking-wide">
-              Quà Tết Sức Khỏe - Trao Gửi Yêu Thương
-            </p>
-          </div>
-        </div>
+    <div className="fixed inset-0 z-[9999] flex" style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+      {/* LEFT: Brand Panel */}
+      <div className="hidden lg:flex flex-col justify-center items-center w-[45%] relative overflow-hidden"
+        style={{ background: "linear-gradient(145deg, #8B0000 0%, #C62828 45%, #E53935 100%)" }}>
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)"
+        }} />
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-white/5" />
+        <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-white/5" />
+        <div className="absolute top-1/3 -right-10 w-40 h-40 rounded-full bg-white/5" />
 
-        <div className="w-[420px] bg-white rounded-[16px] border border-[#f0e8e0] shadow-[0_18px_50px_rgba(192,57,43,0.08)] pt-8 px-8 pb-6 mt-[-5%] max-[480px]:w-full max-[480px]:pt-[28px] max-[480px]:px-[22px] max-[480px]:pb-[22px] max-[480px]:mt-0">
-          <h1 className="text-center text-[26px] m-0 text-[#2b2730]">
-            Đăng ký tài khoản
-          </h1>
-          <p className="text-center mt-2 mb-7 text-[#8b7b84] text-[14px]">
-            Tạo tài khoản để nhận ưu đãi độc quyền
+        <div className="relative z-10 flex flex-col items-center px-12 text-center">
+          <img src="/TetHealthGift-logo.png" alt="TetHealthGift" className="w-32 h-32 object-contain mb-8 drop-shadow-2xl" />
+          <h1 className="text-white text-3xl font-black mb-3 leading-tight">Tham gia cùng chúng tôi</h1>
+          <p className="text-red-100 text-base font-medium mb-8 leading-relaxed max-w-xs">
+            Tạo tài khoản để khám phá hàng ngàn món quà sức khỏe ý nghĩa
           </p>
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            {[
+              { icon: "✓", text: "Nhận ưu đãi thành viên độc quyền" },
+              { icon: "✓", text: "Theo dõi đơn hàng dễ dàng" },
+              { icon: "✓", text: "Thanh toán nhanh chóng, bảo mật" },
+            ].map((item) => (
+              <div key={item.text} className="flex items-center gap-3 text-left">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">{item.icon}</span>
+                <span className="text-red-100 text-sm">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-          <form className="flex flex-col gap-[18px]" onSubmit={handleSubmit}>
-            <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
-              <span className="font-medium">Họ và tên</span>
-              <span className="relative flex items-center">
-                <span className="absolute left-[14px] text-[#e67e22]">
-                  <UserIcon />
-                </span>
-                <input
-                  type="text"
-                  name="fullName"
-                  className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#ddd] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#c0392b] focus:shadow-[0_0_0_3px_rgba(192,57,43,0.15)]"
-                  placeholder="Nhập tên của bạn"
-                  autoComplete="name"
-                  value={form.fullName}
-                  onChange={handleChange}
-                  required
-                />
-              </span>
-            </label>
+      {/* RIGHT: Form Panel */}
+      <div className="flex-1 flex flex-col justify-center items-center bg-white overflow-y-auto py-10 px-6">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex justify-center mb-8">
+            <img src="/TetHealthGift-logo.png" alt="TetHealthGift" className="h-16 object-contain" />
+          </div>
 
-            <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
-              <span className="font-medium">Email</span>
-              <span className="relative flex items-center">
-                <span className="absolute left-[14px] text-[#e67e22]">
-                  <MailIcon />
-                </span>
-                <input
-                  type="email"
-                  name="email"
-                  className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#ddd] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#c0392b] focus:shadow-[0_0_0_3px_rgba(192,57,43,0.15)]"
-                  placeholder="Nhập email của bạn"
-                  autoComplete="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-                />
-              </span>
-            </label>
+          {/* Header */}
+          <div className="mb-8">
+            <p className="text-sm text-[#C62828] font-semibold mb-1 uppercase tracking-wider">Tài khoản mới</p>
+            <h2 className="text-3xl font-black text-gray-900">Đăng ký</h2>
+            <p className="text-gray-500 text-sm mt-2">Điền thông tin để tạo tài khoản của bạn</p>
+          </div>
 
-            <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
-              <span className="font-medium">Mật khẩu</span>
-              <span className="relative flex items-center">
-                <span className="absolute left-[14px] text-[#e67e22]">
-                  <LockIcon />
-                </span>
+          {/* Status */}
+          {status && (
+            <div className={`mb-5 px-4 py-3 rounded-xl text-sm font-medium border ${
+              status.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"
+            }`}>
+              {status.message}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Full Name */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-700">Họ và tên</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"><User size={17} /></span>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#ddd] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#c0392b] focus:shadow-[0_0_0_3px_rgba(192,57,43,0.15)]"
-                  placeholder="Nhập mật khẩu"
-                  autoComplete="new-password"
-                  value={form.password}
-                  onChange={handleChange}
-                  required
+                  type="text" name="fullName" value={form.fullName} onChange={handleChange}
+                  required autoComplete="name" placeholder="Nguyễn Văn A"
+                  className="w-full h-12 pl-11 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-[#C62828] focus:bg-white focus:shadow-[0_0_0_3px_rgba(198,40,40,0.1)] hover:border-gray-300"
                 />
-                <button
-                  className="absolute right-[12px] bg-transparent border-0 text-[#e67e22] cursor-pointer p-1"
-                  type="button"
-                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  onClick={() => setShowPassword((prev) => !prev)}
-                >
-                  <EyeIcon isOpen={showPassword} />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-700">Email</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"><Mail size={17} /></span>
+                <input
+                  type="email" name="email" value={form.email} onChange={handleChange}
+                  required autoComplete="email" placeholder="your@email.com"
+                  className="w-full h-12 pl-11 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-[#C62828] focus:bg-white focus:shadow-[0_0_0_3px_rgba(198,40,40,0.1)] hover:border-gray-300"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-700">Mật khẩu</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"><Lock size={17} /></span>
+                <input
+                  type={showPassword ? "text" : "password"} name="password" value={form.password} onChange={handleChange}
+                  required autoComplete="new-password" placeholder="Tối thiểu 8 ký tự"
+                  className="w-full h-12 pl-11 pr-11 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-[#C62828] focus:bg-white focus:shadow-[0_0_0_3px_rgba(198,40,40,0.1)] hover:border-gray-300"
+                />
+                <button type="button" onClick={() => setShowPassword((p) => !p)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer p-0">
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
-              </span>
-            </label>
+              </div>
+            </div>
 
-            <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
-              <span className="font-medium">Xác nhận mật khẩu</span>
-              <span className="relative flex items-center">
-                <span className="absolute left-[14px] text-[#e67e22]">
-                  <LockIcon />
-                </span>
+            {/* Confirm Password */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-700">Xác nhận mật khẩu</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"><Lock size={17} /></span>
                 <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#ddd] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#c0392b] focus:shadow-[0_0_0_3px_rgba(192,57,43,0.15)]"
-                  placeholder="Xác nhận mật khẩu"
-                  autoComplete="new-password"
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                  required
+                  type={showConfirmPassword ? "text" : "password"} name="confirmPassword" value={form.confirmPassword} onChange={handleChange}
+                  required autoComplete="new-password" placeholder="Nhập lại mật khẩu"
+                  className="w-full h-12 pl-11 pr-11 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-[#C62828] focus:bg-white focus:shadow-[0_0_0_3px_rgba(198,40,40,0.1)] hover:border-gray-300"
                 />
-                <button
-                  className="absolute right-[12px] bg-transparent border-0 text-[#e67e22] cursor-pointer p-1"
-                  type="button"
-                  aria-label={
-                    showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
-                  }
-                  onClick={() => setShowConfirmPassword((prev) => !prev)}
-                >
-                  <EyeIcon isOpen={showConfirmPassword} />
+                <button type="button" onClick={() => setShowConfirmPassword((p) => !p)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer p-0">
+                  {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
-              </span>
-            </label>
+              </div>
+            </div>
 
+            {/* Submit */}
             <button
-              className="h-[44px] rounded-[12px] border-0 bg-[#c0392b] text-white font-semibold text-[15px] cursor-pointer shadow-[0_8px_16px_rgba(192,57,43,0.35)] disabled:opacity-70 disabled:cursor-not-allowed"
-              type="submit"
-              disabled={loading}
+              type="submit" disabled={loading}
+              className="h-12 w-full rounded-xl font-bold text-sm text-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.98] shadow-lg shadow-red-200 mt-2"
+              style={{ background: "linear-gradient(135deg, #C62828 0%, #E53935 100%)" }}
             >
-              {loading ? "Đang xử lý..." : "Đăng ký"}
+              {loading ? <><Loader2 size={18} className="animate-spin" /> Đang xử lý...</> : <><ArrowRight size={18} /> Tạo tài khoản</>}
             </button>
           </form>
 
-          <div className="mt-5 text-center text-[13px] text-[#7e6b75]">
-            Đã có tài khoản?{" "}
-            <a
-              className="text-[#c0392b] no-underline font-semibold hover:underline"
-              href="/login"
-              onClick={handleLoginLink}
-            >
-              Đăng nhập
-            </a>
+          {/* Login link */}
+          <div className="mt-7 text-center">
+            <p className="text-sm text-gray-500">
+              Đã có tài khoản?{" "}
+              <a href="/login"
+                onClick={(e) => { e.preventDefault(); window.history.pushState({}, "", "/login"); window.dispatchEvent(new PopStateEvent("popstate")); }}
+                className="text-[#C62828] font-semibold hover:underline">
+                Đăng nhập
+              </a>
+            </p>
+          </div>
+
+          <div className="mt-4 text-center">
+            <Link to="/" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Quay về trang chủ</Link>
           </div>
         </div>
       </div>
-
-      <div className="w-[calc(100%+48px)] bg-white -mx-6 -mb-8 mt-auto pt-[3.25vh] [&_footer]:!block [&_footer]:!bg-white [&_footer]:text-[#2f2730] [&_footer.bg-gray-900]:!bg-white [&_footer_.bg-gray-950]:!bg-white [&_footer_.text-gray-300]:!text-[#5f4c55] [&_footer_.text-gray-400]:!text-[#5f4c55] [&_footer_.text-gray-500]:!text-[#5f4c55] [&_footer_.text-white]:!text-[#2f2730] [&_footer_a]:text-[#2f2730] [&_footer_a:hover]:text-[#2f2730] [&_footer_.border-gray-800]:!border-[#e8dfe3] [&_footer_.border-gray-700]:!border-[#e8dfe3] [&_footer_input]:!bg-white [&_footer_input]:!text-[#2f2730] [&_footer_input]:!border-[#e8dfe3] [&_footer_button]:!bg-[#c0392b] [&_footer_button]:!text-white">
-        <Footer />
-      </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="w-[18px] h-[18px] fill-current"
-    >
-      <path d="M12 12c2.8 0 5-2.2 5-5s-2.2-5-5-5-5 2.2-5 5 2.2 5 5 5zm0 2c-4.2 0-8 2.2-8 5v3h16v-3c0-2.8-3.8-5-8-5z" />
-    </svg>
-  );
-}
-
-function MailIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="w-[18px] h-[18px] fill-current"
-    >
-      <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z" />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="w-[18px] h-[18px] fill-current"
-    >
-      <path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4z" />
-    </svg>
-  );
-}
-
-function EyeIcon({ isOpen }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="w-[18px] h-[18px] fill-current"
-    >
-      {isOpen ? (
-        <path d="M12 4.5c-5.6 0-10.3 3.5-12 7.5 1.7 4 6.4 7.5 12 7.5s10.3-3.5 12-7.5c-1.7-4-6.4-7.5-12-7.5zm0 12.2a4.7 4.7 0 1 1 0-9.4 4.7 4.7 0 0 1 0 9.4z" />
-      ) : (
-        <path d="M2.3 3.7 1 5l3.3 3.3C2.6 9.7 1.4 11.6 1 12c1.7 4 6.4 7.5 12 7.5 2 0 3.9-.4 5.6-1.2l3.1 3.1 1.3-1.3-20-20zm9.7 12.9a4.7 4.7 0 0 1-4.7-4.7c0-.6.1-1.1.3-1.6l6 6c-.5.2-1 .3-1.6.3zm2.9-1 2.9 2.9c-1.7.8-3.6 1.2-5.8 1.2-4.4 0-8.3-2.6-9.9-6.2.8-1.7 2-3.1 3.5-4.2l2.1 2.1a4.7 4.7 0 0 0 7.2 6.2zM12 6.3c4.4 0 8.3 2.6 9.9 6.2-.7 1.4-1.6 2.6-2.7 3.5l-1.8-1.8a4.7 4.7 0 0 0-5.6-5.6L9 6.7c1-.3 2-.4 3-.4z" />
-      )}
-    </svg>
   );
 }
 
