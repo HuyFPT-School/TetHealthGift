@@ -181,7 +181,7 @@ function Login() {
       }
 
       if (user?.role === "Admin") {
-        navigate("/admin");
+        navigate("/admin/products");
       } else if (user?.role === "Staff") {
         navigate("/staff");
       } else {
