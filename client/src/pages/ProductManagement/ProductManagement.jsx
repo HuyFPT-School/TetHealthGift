@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import api from "../../api";
+import axiosInstance from "@/lib/axios";
 import { Spinner, Toast, Modal, StockBadge, vnd } from "../../components/CM/Components";
 import "./ProductManagement.css";
 
 const LIMIT = 10;
-
 
 const ProductManagement = () => {
   const [products,   setProducts]   = useState([]);
@@ -28,18 +27,21 @@ const ProductManagement = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
       const params = new URLSearchParams({ page, limit: LIMIT });
       if (search)    params.set("search",   search);
       if (filterCat) params.set("category", filterCat);
-      const res = await api.get(`/api/products?${params}`);
-      setProducts(res.products || res.data || res || []);
-      setTotal(res.total || res.totalProducts || (res.products?.length || 0));
+      const res = await axiosInstance.get(`/api/products?${params}`);
+      // Backend trả { message, data: [...] } hoặc { data: { products, total } }
+      const body = res.data;
+      const list = body?.data?.products || body?.data || body?.products || [];
+      const tot  = body?.data?.total    || body?.total || (Array.isArray(list) ? list.length : 0);
+      setProducts(Array.isArray(list) ? list : []);
+      setTotal(tot);
     } catch (e) {
-      setError(e.message);
+      setError(e.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
@@ -47,13 +49,14 @@ const ProductManagement = () => {
 
   useEffect(() => { load(); }, [load]);
 
-
   useEffect(() => {
-    api.get("/api/categories")
-      .then(r => setCategories(r.categories || r.data || r || []))
+    axiosInstance.get("/api/categories")
+      .then(r => {
+        const list = r.data?.data || r.data?.categories || r.data || [];
+        setCategories(Array.isArray(list) ? list : []);
+      })
       .catch(() => {});
   }, []);
-
 
   const openAdd  = () => { setForm(blank); setEditItem(null); setShowForm(true); };
   const openEdit = p => {
@@ -84,16 +87,16 @@ const ProductManagement = () => {
           : [],
       };
       if (editItem) {
-        await api.put(`/api/products/${editItem._id}`, body);
+        await axiosInstance.put(`/api/products/${editItem._id}`, body);
         showT("Đã cập nhật sản phẩm");
       } else {
-        await api.post("/api/products", body);
+        await axiosInstance.post("/api/products", body);
         showT("Đã thêm sản phẩm mới");
       }
       setShowForm(false);
       load();
     } catch (e) {
-      showT(e.message, "error");
+      showT(e.response?.data?.message || e.message, "error");
     } finally {
       setSaving(false);
     }
@@ -102,50 +105,57 @@ const ProductManagement = () => {
   const del = async (id, name) => {
     if (!confirm(`Xoá sản phẩm "${name}"?`)) return;
     try {
-      await api.delete(`/api/products/${id}`);
+      await axiosInstance.delete(`/api/products/${id}`);
       showT("Đã xoá sản phẩm");
       load();
     } catch (e) {
-      showT(e.message, "error");
+      showT(e.response?.data?.message || e.message, "error");
     }
   };
 
- 
+  const exportCSV = () => {
+    const rows = [
+      ["ID","Tên sản phẩm","Danh mục","Giá","Tồn kho","Mô tả"],
+      ...products.map(p => [
+        p._id, p.name,
+        p.category?.name || p.category || "",
+        p.price, p.quantity, p.description || "",
+      ]),
+    ];
+    const csv = rows.map(r =>
+      r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")
+    ).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
+    a.download = "san-pham.csv";
+    a.click();
+    showT("Đã xuất file Excel");
+  };
 
   const pageCount = Math.max(1, Math.ceil(total / LIMIT));
 
- 
   return (
     <div className="products-page fade-in">
       {toast && <Toast msg={toast.msg} type={toast.type} />}
 
-     
       <div className="toolbar">
         <div className="search-wrap">
-          <span className="search-icon">🔍</span>
-          <input
-            className="inp"
-            style={{ paddingLeft: 34 }}
-            value={search}
+          <span className="search-icon"></span>
+          <input className="inp" style={{ paddingLeft: 34 }} value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Tìm kiếm sản phẩm..."
-          />
+            placeholder="Tìm kiếm sản phẩm..." />
         </div>
-        <select
-          className="inp select-cat"
-          value={filterCat}
-          onChange={e => { setFilterCat(e.target.value); setPage(1); }}
-        >
+        <select className="inp select-cat" value={filterCat}
+          onChange={e => { setFilterCat(e.target.value); setPage(1); }}>
           <option value="">Tất cả danh mục</option>
           {categories.map(c => (
             <option key={c._id} value={c._id}>{c.name}</option>
           ))}
         </select>
-
+        
         <button onClick={openAdd}   className="btn-primary">Thêm sản phẩm mới</button>
       </div>
 
-   
       <div className="card table-card">
         {loading ? (
           <div className="table-loading"><Spinner size={32} /></div>
@@ -164,75 +174,54 @@ const ProductManagement = () => {
                 </thead>
                 <tbody>
                   {products.map((p, i) => (
-                    <tr
-                      key={p._id}
-                      className="row-hover"
-                      style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}
-                    >
+                    <tr key={p._id} className="row-hover"
+                      style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
                       <td>
-                        {p.images?.[0] ? (
-                          <img src={p.images[0]} className="product-img" alt={p.name} />
-                        ) : (
-                          <div className="product-img placeholder">📦</div>
-                        )}
+                        {p.images?.[0]
+                          ? <img src={p.images[0]} className="product-img" alt={p.name} />
+                          : <div className="product-img placeholder"></div>
+                        }
                       </td>
                       <td>
                         <div className="product-name">{p.name}</div>
-                        {p.description && (
-                          <div className="product-desc">{p.description}</div>
-                        )}
+                        {p.description && <div className="product-desc">{p.description}</div>}
                       </td>
-                      <td className="product-cat">
-                        {p.category?.name || p.category || "—"}
-                      </td>
+                      <td className="product-cat">{p.category?.name || p.category || "—"}</td>
                       <td className="product-price">{vnd(p.price)}</td>
                       <td><StockBadge n={p.quantity || 0} /></td>
                       <td>
                         <div className="action-btns">
-                          <button className="btn-icon-blue" onClick={() => openEdit(p)}>Sửa</button>
-                          <button className="btn-icon-red"  onClick={() => del(p._id, p.name)}>Xoá</button>
+                          <button className="btn-icon-blue" onClick={() => openEdit(p)}> Sửa</button>
+                          <button className="btn-icon-red"  onClick={() => del(p._id, p.name)}> Xoá</button>
                         </div>
                       </td>
                     </tr>
                   ))}
                   {products.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="empty-row">
-                        <div className="empty-icon">📭</div>
-                        Không có sản phẩm nào
-                      </td>
-                    </tr>
+                    <tr><td colSpan={6} className="empty-row">
+                      <div className="empty-icon"></div>
+                      Không có sản phẩm nào
+                    </td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-
-          
             <div className="pagination">
               <span>Trang {page}/{pageCount} · {total} sản phẩm</span>
               <div style={{ display: "flex", gap: 6 }}>
-                <button
-                  className="btn-outline" style={{ padding: "6px 14px" }}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >← Trước</button>
-                <button
-                  className="btn-outline" style={{ padding: "6px 14px" }}
-                  onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                  disabled={page === pageCount}
-                >Sau →</button>
+                <button className="btn-outline" style={{ padding: "6px 14px" }}
+                  onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Trước</button>
+                <button className="btn-outline" style={{ padding: "6px 14px" }}
+                  onClick={() => setPage(p => Math.min(pageCount, p + 1))} disabled={page === pageCount}>Sau</button>
               </div>
             </div>
           </>
         )}
       </div>
 
-      
       {showForm && (
-        <Modal
-          title={editItem ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
-          onClose={() => setShowForm(false)}
-        >
+        <Modal title={editItem ? "✏️ Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
+          onClose={() => setShowForm(false)}>
           <div className="field">
             <label>Tên sản phẩm *</label>
             <input className="inp" value={form.name}
@@ -278,11 +267,8 @@ const ProductManagement = () => {
           </div>
           <div className="modal-footer">
             <button className="btn-outline" onClick={() => setShowForm(false)}>Huỷ</button>
-            <button
-              className="btn-primary"
-              onClick={save}
-              disabled={saving || !form.name || !form.price || form.quantity === ""}
-            >
+            <button className="btn-primary" onClick={save}
+              disabled={saving || !form.name || !form.price || form.quantity === ""}>
               {saving ? <Spinner size={14} /> : editItem ? "Lưu thay đổi" : "Thêm mới"}
             </button>
           </div>
