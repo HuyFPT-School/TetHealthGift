@@ -40,6 +40,12 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Bỏ qua auto-refresh với các auth endpoints (login, register, verify...)
+    const AUTH_SKIP = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-email", "/api/auth/change-password"];
+    if (AUTH_SKIP.some((path) => originalRequest.url?.includes(path))) {
+      return Promise.reject(error);
+    }
+
     // Nếu chính request refresh bị 401 → logout
     if (originalRequest.url?.includes("/api/auth/refresh")) {
       _forceLogout();

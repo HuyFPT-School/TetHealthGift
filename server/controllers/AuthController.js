@@ -1,5 +1,4 @@
 const bcrypt = require("bcryptjs");
-const User = require("../models/UserModel");
 const crypto = require("node:crypto");
 const jwt = require("jsonwebtoken");
 const {
@@ -18,11 +17,15 @@ const login = async (req, res) => {
       return res.status(400).json({ error: "Vui lòng nhập email và mật khẩu" });
     }
 
-    const userRecord = await User.findOne({ email }).select("+password");
+    const userRecord = await UserModel.findOne({ email }).select("+password");
     if (!userRecord) {
       return res
         .status(401)
         .json({ error: "Email hoặc mật khẩu không chính xác" });
+    }
+
+    if (!userRecord.isVerified) {
+      return res.status(403).json({ error: "Email chưa được xác thực..." });
     }
 
     const valid = await bcrypt.compare(password, userRecord.password);
@@ -58,6 +61,7 @@ const login = async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        avatar: userRecord.avatar || null,
       },
     });
   } catch (error) {
@@ -99,7 +103,7 @@ const token = async (req, res) => {
         if (err) return res.status(403).json({ error: "Token không hợp lệ" });
 
         try {
-          const userRecord = await User.findById(user.id);
+          const userRecord = await UserModel.findById(user.id);
           if (!userRecord) {
             return res.status(404).json({ error: "Người dùng không tồn tại" });
           }
