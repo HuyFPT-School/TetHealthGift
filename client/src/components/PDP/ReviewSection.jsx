@@ -11,7 +11,11 @@ function formatComment(c, index) {
   const avatars = ["👩", "👨", "🧑", "👴", "👵"];
   return {
     id: c._id || index,
-    name: c.author?.name || c.author?.username || `Khách hàng ${index + 1}`,
+    name:
+      c.author?.fullname ||
+      c.author?.name ||
+      c.author?.username ||
+      `Khách hàng ${index + 1}`,
     avatar: avatars[index % avatars.length],
     rating: c.rating,
     date: c.createdAt
