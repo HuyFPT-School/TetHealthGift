@@ -160,7 +160,7 @@ const ProductManagement = () => {
         {loading ? (
           <div className="table-loading"><Spinner size={32} /></div>
         ) : error ? (
-          <div className="table-error">❌ {error}</div>
+          <div className="table-error"> {error}</div>
         ) : (
           <>
             <div style={{ overflowX: "auto" }}>
@@ -220,7 +220,7 @@ const ProductManagement = () => {
       </div>
 
       {showForm && (
-        <Modal title={editItem ? "✏️ Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
+        <Modal title={editItem ? " Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
           onClose={() => setShowForm(false)}>
           <div className="field">
             <label>Tên sản phẩm *</label>
