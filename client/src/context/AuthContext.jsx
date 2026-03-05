@@ -12,13 +12,11 @@ const getStoredUser = () => {
     return null;
   }
 };
-const setTokens = (accessToken, refreshToken) => {
+const setTokens = (accessToken) => {
   if (accessToken) {
     localStorage.setItem("accessToken", accessToken);
   }
-  if (refreshToken) {
-    localStorage.setItem("refreshToken", refreshToken);
-  }
+  // refreshToken được backend lưu vào httpOnly cookie, không cần localStorage
 };
 const setStoredUser = (userData) => {
   if (userData) {
@@ -27,16 +25,16 @@ const setStoredUser = (userData) => {
 };
 const clearTokens = () => {
   localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
+  // refreshToken sẽ được xóa bởi backend khi gọi API logout
 };
 
 const defaultAuth = {
   user: null,
   token: getAccessToken(),
   loading: false,
-  login: (accessToken, refreshToken) => {
-    setTokens(accessToken, refreshToken);
+  login: (accessToken) => {
+    setTokens(accessToken);
   },
   logout: () => {
     clearTokens();
@@ -71,8 +69,8 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = (accessToken, refreshToken, userData) => {
-    setTokens(accessToken, refreshToken);
+  const login = (accessToken, userData) => {
+    setTokens(accessToken);
     setStoredUser(userData);
     setToken(accessToken);
     setUser(userData);

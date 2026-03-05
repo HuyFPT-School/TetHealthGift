@@ -62,15 +62,12 @@ export const uploadAvatar = async (file, retryCount = 0) => {
     if (error?.response?.status === 403 && retryCount === 0) {
       console.log("Token expired (403), refreshing...");
       try {
-        // Lấy refresh token và gọi API refresh
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          throw new Error("Không có refresh token. Vui lòng đăng nhập lại.");
-        }
-
-        const refreshResponse = await axiosInstance.post("/api/auth/refresh", {
-          refreshToken,
-        });
+        // Backend đọc refreshToken từ httpOnly cookie
+        const refreshResponse = await axiosInstance.post(
+          "/api/auth/refresh",
+          {},
+          { withCredentials: true },
+        );
 
         const newToken =
           refreshResponse.data?.accessToken ||
@@ -93,7 +90,7 @@ export const uploadAvatar = async (file, retryCount = 0) => {
         console.error("Refresh token failed:", refreshError);
         // Nếu refresh fail, xóa tokens và yêu cầu đăng nhập lại
         localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        // Cookie sẽ được backend xóa khi gọi logout
         throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
       }
     }

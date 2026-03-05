@@ -19,25 +19,32 @@ const app = express();
 database.connect();
 
 // Middleware
-const allowedOrigins = [
-  process.env.CLIENT_URL || "http://localhost:5173",
-  "http://localhost:3000",
-];
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. Postman, server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked: ${origin}`));
-      }
-    },
-    credentials: true, // Allow cookies (refreshToken httpOnly cookie)
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // No origin (server-to-server, Postman, mobile apps)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Development: Allow all localhost ports
+    const isLocalhost = origin.startsWith("http://localhost:");
+
+    // Production: Check against CLIENT_URL
+    const isProduction =
+      process.env.CLIENT_URL && origin === process.env.CLIENT_URL;
+
+    if (isLocalhost || isProduction) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
+  credentials: true, // Allow cookies (refreshToken httpOnly cookie)
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -54,7 +61,6 @@ app.use("/api/blogs", BlogRoutes);
 app.use("/api/upload", UploadRoute);
 app.use("/api/payment", PaymentRoutes);
 app.use("/api/wishlist", WishlistRoute);
-
 
 // Server setup
 const PORT = process.env.PORT || 3000;

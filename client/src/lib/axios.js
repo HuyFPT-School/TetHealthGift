@@ -6,8 +6,8 @@ const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
-  // Giữ false để không ảnh hưởng CORS — refresh dùng body thay vì cookie
-  withCredentials: false,
+  // Bật withCredentials để gửi/nhận httpOnly cookie (refreshToken)
+  withCredentials: true,
 });
 
 // ── Request: gắn accessToken ──
@@ -26,7 +26,7 @@ let pendingQueue = [];
 
 const processQueue = (error, token = null) => {
   pendingQueue.forEach(({ resolve, reject }) =>
-    error ? reject(error) : resolve(token)
+    error ? reject(error) : resolve(token),
   );
   pendingQueue = [];
 };
@@ -41,7 +41,12 @@ axiosInstance.interceptors.response.use(
     }
 
     // Bỏ qua auto-refresh với các auth endpoints (login, register, verify...)
-    const AUTH_SKIP = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-email", "/api/auth/change-password"];
+    const AUTH_SKIP = [
+      "/api/auth/login",
+      "/api/auth/register",
+      "/api/auth/verify-email",
+      "/api/auth/change-password",
+    ];
     if (AUTH_SKIP.some((path) => originalRequest.url?.includes(path))) {
       return Promise.reject(error);
     }
@@ -66,19 +71,15 @@ axiosInstance.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const storedRefreshToken = localStorage.getItem("refreshToken");
-
-      // Gửi refreshToken qua body (withCredentials: false nên không dùng cookie)
+      // Backend đọc refreshToken từ httpOnly cookie, cần withCredentials: true
       const res = await axios.post(
         `${API_BASE_URL}/api/auth/refresh`,
-        { refreshToken: storedRefreshToken },
-        { withCredentials: false },
+        {},
+        { withCredentials: true },
       );
 
       const newToken =
-        res.data?.accessToken ||
-        res.data?.token ||
-        res.data?.data?.accessToken;
+        res.data?.accessToken || res.data?.token || res.data?.data?.accessToken;
 
       if (!newToken) throw new Error("Không nhận được token mới");
 
@@ -88,7 +89,6 @@ axiosInstance.interceptors.response.use(
       processQueue(null, newToken);
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return axiosInstance(originalRequest);
-
     } catch (refreshError) {
       processQueue(refreshError, null);
       _forceLogout();
@@ -101,8 +101,8 @@ axiosInstance.interceptors.response.use(
 
 function _forceLogout() {
   localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
+  // Cookie sẽ được xóa bởi backend khi gọi logout
   window.location.href = "/login";
 }
 
