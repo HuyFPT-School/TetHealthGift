@@ -17,6 +17,7 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import VerifyEmailOTP from "./pages/Auth/VerifyEmailOTP";
+import AccountPage from "./pages/Account/index";
 
 function PublicLayout() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/qua-tet" element={<ProductListingPage />} />
           <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="/admin/products" element={<ProductManagement />} />
           <Route path="/staff/orders" element={<OrderManagement />} />
           <Route path="/admin/analytics" element={<AnalyticsDashboard />} />

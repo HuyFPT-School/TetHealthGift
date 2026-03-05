@@ -43,6 +43,7 @@ const defaultAuth = {
   },
   isAuthenticated: () => !!getAccessToken(),
   updateToken: () => {},
+  updateUser: () => {},
   refreshToken: async () => {},
 };
 
@@ -92,6 +93,11 @@ export const AuthProvider = ({ children }) => {
     setToken(newToken);
   };
 
+  const updateUser = (userData) => {
+    setStoredUser(userData);
+    setUser(userData);
+  };
+
   const refreshToken = async () => {
     try {
       const response = await axios.post(
@@ -120,6 +126,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     isAuthenticated,
     updateToken,
+    updateUser,
     refreshToken,
   };
 
