@@ -51,7 +51,9 @@ export default function PayMoneyPage() {
 
     try {
       setOrdering(true);
-      await axiosInstance.post("/api/orders", {
+
+      // 1. Tạo đơn hàng
+      const orderRes = await axiosInstance.post("/api/orders", {
         cartItems: cartData,
         shippingAddress: shippingAddress.trim(),
         phone: phone.trim(),
@@ -59,13 +61,51 @@ export default function PayMoneyPage() {
         paymentMethod,
       });
 
-      // Remove ordered items from wishlist
+      const newOrder = orderRes.data.data;
+      const orderId = newOrder._id;
+
+      // 2. Xóa sản phẩm đã đặt khỏi wishlist
       for (const item of selectedItems) {
         await removeFromWishlist(item.product?._id);
       }
 
-      alert("Đặt hàng thành công!");
-      navigate("/cart");
+      // 3. Xử lý thanh toán theo phương thức
+      if (paymentMethod === "vnpay") {
+        const paymentRes = await axiosInstance.post("/api/payment/vnpay/create", {
+          orderId,
+          orderInfo: `Thanh toán đơn hàng #${orderId}`,
+        });
+
+        if (paymentRes.data.success && paymentRes.data.paymentUrl) {
+          window.location.href = paymentRes.data.paymentUrl;
+          return;
+        } else {
+          alert("Không thể tạo thanh toán VNPay. Đơn hàng đã được tạo, vui lòng thanh toán lại sau.");
+          navigate("/cart");
+        }
+      } else if (paymentMethod === "momo") {
+        const paymentRes = await axiosInstance.post("/api/payment/momo/create", {
+          orderId,
+          orderInfo: `Thanh toán đơn hàng #${orderId}`,
+        });
+
+        if (paymentRes.data.success && paymentRes.data.payUrl) {
+          window.location.href = paymentRes.data.payUrl;
+          return;
+        } else {
+          alert("Không thể tạo thanh toán MoMo. Đơn hàng đã được tạo, vui lòng thanh toán lại sau.");
+          navigate("/cart");
+        }
+      } else {
+        // COD - thanh toán khi nhận hàng
+        navigate("/payment-result", {
+          state: {
+            method: "cod",
+            orderId: orderId,
+            amount: totalAmount,
+          },
+        });
+      }
     } catch (error) {
       alert(
         "Đặt hàng thất bại: " +

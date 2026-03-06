@@ -5,7 +5,6 @@ const WishlistService = require("../services/WishlistService");
 const getWishlist = async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log("Getting wishlist for userId:", userId);
     const user = await UserModel.findById(userId).populate({
       path: "wishlist.product",
       populate: { path: "category", select: "name" },
@@ -65,10 +64,10 @@ const removeFromWishlist = async (req, res) => {
 
     const user = await UserModel.findByIdAndUpdate(
       userId,
-      { $pull: { wishlist: productId } },
+      { $pull: { wishlist: { product: productId } } },
       { new: true },
     ).populate({
-      path: "wishlist",
+      path: "wishlist.product",
       populate: { path: "category", select: "name" },
     });
 

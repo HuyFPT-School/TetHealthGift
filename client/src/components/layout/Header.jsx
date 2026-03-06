@@ -348,6 +348,30 @@ export default function Header() {
                     <User size={18} color="#c0392b" />
                     Hồ sơ
                   </Link>
+                  <Link
+                    to="/my-orders"
+                    onClick={() => setShowUserDropdown(false)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "12px 16px",
+                      fontSize: "14px",
+                      color: "#333",
+                      textDecoration: "none",
+                      transition: "background 0.2s",
+                      borderBottom: "1px solid #f5f5f5",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#f8e8d8")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <Gift size={18} color="#c0392b" />
+                    Đơn hàng của tôi
+                  </Link>
                   <button
                     onClick={handleLogout}
                     style={{

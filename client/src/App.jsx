@@ -21,6 +21,8 @@ import VerifyEmailOTP from "./pages/Auth/VerifyEmailOTP";
 import AccountPage from "./pages/Account/index";
 import CartPage from "./pages/WishlistManagement/CartPage";
 import PayMoneyPage from "./pages/WishlistManagement/PayMoneyPage";
+import PaymentResultPage from "./pages/WishlistManagement/PaymentResultPage";
+import OrderTrackingPage from "./pages/WishlistManagement/OrderTrackingPage";
 
 function PublicLayout() {
   return (
@@ -71,6 +73,8 @@ function App() {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<PayMoneyPage />} />
+          <Route path="/payment-result" element={<PaymentResultPage />} />
+          <Route path="/my-orders" element={<OrderTrackingPage />} />
           <Route path="/admin/products" element={<ProductManagement />} />
           <Route path="/admin/orders" element={<OrderManagement />} />
           <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
