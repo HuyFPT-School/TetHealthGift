@@ -19,10 +19,14 @@ import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import VerifyEmailOTP from "./pages/Auth/VerifyEmailOTP";
 import { useAuth } from "./context/AuthContext";
-
+import BlogPage from "./pages/BlogPage/BlogPage";
+import BlogDetail from "./components/BlogDetail/BlogDetail";
+import BlogManagement from "./pages/BlogManagement/BlogManagement";
 function PublicLayout() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
+    >
       <Header />
       <main style={{ flex: 1 }}>
         <Outlet />
@@ -34,8 +38,17 @@ function PublicLayout() {
 
 function AuthLoading() {
   return (
-    <div style={{ display:"flex", justifyContent:"center", alignItems:"center", height:"60vh" }}>
-      <div style={{ fontSize:14, color:"#888" }}>Dang kiem tra quyen truy cap...</div>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "60vh",
+      }}
+    >
+      <div style={{ fontSize: 14, color: "#888" }}>
+        Dang kiem tra quyen truy cap...
+      </div>
     </div>
   );
 }
@@ -44,7 +57,7 @@ function AuthLoading() {
 function AdminOnlyRoute() {
   const { token, user, loading } = useAuth();
   if (loading) return <AuthLoading />;
-  if (!token)  return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login" replace />;
   if (user?.role !== "Admin") return <Navigate to="/" replace />;
   return <Outlet />;
 }
@@ -53,7 +66,7 @@ function AdminOnlyRoute() {
 function StaffManagerOnlyRoute() {
   const { token, user, loading } = useAuth();
   if (loading) return <AuthLoading />;
-  if (!token)  return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login" replace />;
   if (user?.role !== "StaffManager") return <Navigate to="/" replace />;
   return <Outlet />;
 }
@@ -66,11 +79,14 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/qua-tet" element={<ProductListingPage />} />
           <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
-
+          {/* Blog public */}
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:id" element={<BlogDetail />} />
           {/* Admin */}
           <Route element={<AdminOnlyRoute />}>
-            <Route path="/admin/products"  element={<ProductManagement />} />
+            <Route path="/admin/products" element={<ProductManagement />} />
             <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
+            <Route path="/admin/blogs"     element={<BlogManagement />} />
           </Route>
 
           {/* StaffManager */}
@@ -79,11 +95,11 @@ function App() {
           </Route>
         </Route>
 
-        <Route path="/login"           element={<Login />} />
-        <Route path="/register"        element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-email"    element={<VerifyEmailOTP />} />
-        <Route path="*"                element={<Navigate to="/" replace />} />
+        <Route path="/verify-email" element={<VerifyEmailOTP />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
