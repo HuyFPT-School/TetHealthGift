@@ -1,11 +1,22 @@
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
 import "./Header.css";
 
-const Header = ({ tab, setTab, user, onLogout }) => {
-  const tabs = [
-    { k: "dashboard", icon: "📈", label: "Tổng quan"  },
-    { k: "products",  icon: "🎁", label: "Sản phẩm"   },
-    { k: "orders",    icon: "🛒", label: "Đơn hàng"   },
-  ];
+const TABS = [
+  { path: "/admin/analytics", label: "Tổng quan" },
+  { path: "/admin/products", label: "Sản phẩm" },
+  { path: "/admin/blogs", label: "Blog" },
+];
+
+const HeaderManagement = () => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <header className="header">
@@ -15,14 +26,16 @@ const Header = ({ tab, setTab, user, onLogout }) => {
           <div className="header-logo">🎋</div>
           <div>
             <div className="header-title">Admin Dashboard</div>
-            <div className="header-subtitle">Quản lý hệ thống Tết Health Gift</div>
+            <div className="header-subtitle">
+              Quản lý hệ thống Tết Health Gift
+            </div>
           </div>
         </div>
         <div className="header-actions">
           <span className="header-user">
-            👤 {user?.fullname || user?.name || user?.email || "Admin"}
+            {user?.name || user?.fullname || user?.email || "Admin"}
           </span>
-          <button className="btn-logout" onClick={onLogout}>
+          <button className="btn-logout" onClick={handleLogout}>
             Đăng xuất
           </button>
         </div>
@@ -30,11 +43,11 @@ const Header = ({ tab, setTab, user, onLogout }) => {
 
       {/* Nav tabs */}
       <nav className="header-nav">
-        {tabs.map(t => (
+        {TABS.map((t) => (
           <div
-            key={t.k}
-            className={`tab-item${tab === t.k ? " active" : ""}`}
-            onClick={() => setTab(t.k)}
+            key={t.path}
+            className={`tab-item${pathname === t.path ? " active" : ""}`}
+            onClick={() => navigate(t.path)}
           >
             <span>{t.icon}</span>
             {t.label}
@@ -45,4 +58,4 @@ const Header = ({ tab, setTab, user, onLogout }) => {
   );
 };
 
-export default Header;
+export default HeaderManagement;

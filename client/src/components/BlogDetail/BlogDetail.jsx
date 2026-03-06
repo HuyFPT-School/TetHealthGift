@@ -22,7 +22,7 @@ const BlogDetail = () => {
 
   if (loading) return (
     <div className="bd-state">
-      <div className="bd-state-icon">⏳</div>
+      <div className="bd-state-icon"></div>
       Đang tải bài viết...
     </div>
   );
@@ -53,8 +53,8 @@ const BlogDetail = () => {
         )}
         <h1 className="bd-hero-title">{blog.title}</h1>
         <div className="bd-hero-meta">
-          {blog.author && <span>✍️ {blog.author}</span>}
-          <span>📅 {fmtDate(blog.createdAt)}</span>
+          {blog.author && <span> {blog.author}</span>}
+          <span> {fmtDate(blog.createdAt)}</span>
         </div>
       </div>
 

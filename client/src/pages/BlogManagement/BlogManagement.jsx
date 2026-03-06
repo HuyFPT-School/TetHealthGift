@@ -107,15 +107,15 @@ const BlogManagement = () => {
       {/* Header */}
       <div className="bm-header">
         <div>
-          <h2 className="bm-title">📝 Quản lý Blog</h2>
+          <h2 className="bm-title">Quản lý Blog</h2>
           <p className="bm-sub">{blogs.length} bài viết</p>
         </div>
-        <button className="btn-primary" onClick={openAdd}>＋ Thêm bài viết</button>
+        <button className="btn-primary" onClick={openAdd}>Thêm bài viết</button>
       </div>
 
       {/* Search */}
       <div className="search-wrap" style={{ maxWidth: 380, marginBottom: 20 }}>
-        <span className="search-icon">🔍</span>
+        <span className="search-icon"></span>
         <input
           className="inp"
           style={{ paddingLeft: 34 }}
@@ -130,7 +130,7 @@ const BlogManagement = () => {
         {loading ? (
           <div className="table-loading"><Spinner size={32} /></div>
         ) : error ? (
-          <div className="table-error">❌ {error}</div>
+          <div className="table-error">{error}</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table className="tbl">
@@ -155,7 +155,7 @@ const BlogManagement = () => {
                           onError={e => { e.target.style.display = "none"; }}
                         />
                       ) : (
-                        <div className="bm-thumb-placeholder">📝</div>
+                        <div className="bm-thumb-placeholder"></div>
                       )}
                     </td>
 
@@ -188,9 +188,9 @@ const BlogManagement = () => {
                     {/* Actions */}
                     <td>
                       <div className="action-btns">
-                        <button className="btn-outline bm-btn-sm" onClick={() => setPreview(b)}>👁 Xem</button>
-                        <button className="btn-icon-blue" onClick={() => openEdit(b)}>✏️ Sửa</button>
-                        <button className="btn-icon-red"  onClick={() => del(b._id, b.title)}>🗑 Xoá</button>
+                        <button className="btn-outline bm-btn-sm" onClick={() => setPreview(b)}>Xem</button>
+                        <button className="btn-icon-blue" onClick={() => openEdit(b)}>Sửa</button>
+                        <button className="btn-icon-red"  onClick={() => del(b._id, b.title)}>Xoá</button>
                       </div>
                     </td>
                   </tr>
@@ -198,7 +198,7 @@ const BlogManagement = () => {
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={6} className="bm-empty-row">
-                      <div className="bm-empty-icon">📭</div>
+                      <div className="bm-empty-icon"></div>
                       Không có bài viết nào
                     </td>
                   </tr>
@@ -212,7 +212,7 @@ const BlogManagement = () => {
       {/* ── Form Modal ── */}
       {showForm && (
         <Modal
-          title={editItem ? "✏️ Chỉnh sửa bài viết" : "➕ Thêm bài viết mới"}
+          title={editItem ? "Chỉnh sửa bài viết" : "Thêm bài viết mới"}
           onClose={() => setShowForm(false)}
           wide
         >
@@ -263,7 +263,7 @@ const BlogManagement = () => {
               onClick={save}
               disabled={saving || !form.title.trim() || !form.content.trim()}
             >
-              {saving ? <Spinner size={14} /> : editItem ? "💾 Lưu thay đổi" : "➕ Đăng bài"}
+              {saving ? <Spinner size={14} /> : editItem ? "Lưu thay đổi" : "Đăng bài"}
             </button>
           </div>
         </Modal>
@@ -277,8 +277,8 @@ const BlogManagement = () => {
               onError={e => { e.target.style.display = "none"; }} />
           )}
           <div className="bm-preview-meta">
-            {preview.author && <span>✍️ {preview.author}</span>}
-            <span>📅 {fmtDate(preview.createdAt)}</span>
+            {preview.author && <span>{preview.author}</span>}
+            <span>{fmtDate(preview.createdAt)}</span>
           </div>
           {(preview.tags || []).length > 0 && (
             <div className="bm-tags" style={{ marginBottom: 16 }}>
@@ -297,7 +297,7 @@ const BlogManagement = () => {
           <div className="modal-footer">
             <button className="btn-outline" onClick={() => setPreview(null)}>Đóng</button>
             <button className="btn-primary" onClick={() => { setPreview(null); openEdit(preview); }}>
-              ✏️ Chỉnh sửa
+              Chỉnh sửa
             </button>
           </div>
         </Modal>
