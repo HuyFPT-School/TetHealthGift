@@ -1,25 +1,38 @@
 import { useState, useEffect, useCallback } from "react";
 import axiosInstance from "@/lib/axios";
-import { Spinner, Toast, Modal, StockBadge, vnd } from "../../components/CM/Components";
+import {
+  Spinner,
+  Toast,
+  Modal,
+  StockBadge,
+  vnd,
+} from "../../components/CM/Components";
 import "./ProductManagement.css";
 
 const LIMIT = 10;
 
 const ProductManagement = () => {
-  const [products,   setProducts]   = useState([]);
-  const [total,      setTotal]      = useState(0);
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [error,      setError]      = useState("");
-  const [search,     setSearch]     = useState("");
-  const [filterCat,  setFilterCat]  = useState("");
-  const [page,       setPage]       = useState(1);
+  const [products, setProducts] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterCat, setFilterCat] = useState("");
+  const [page, setPage] = useState(1);
   const [categories, setCategories] = useState([]);
-  const [showForm,   setShowForm]   = useState(false);
-  const [editItem,   setEditItem]   = useState(null);
-  const [toast,      setToast]      = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [toast, setToast] = useState(null);
 
-  const blank = { name: "", description: "", price: "", category: "", quantity: "", images: "" };
+  const blank = {
+    name: "",
+    description: "",
+    price: "",
+    category: "",
+    quantity: "",
+    imageUrl: "",
+  };
   const [form, setForm] = useState(blank);
 
   const showT = (msg, type = "ok") => {
@@ -28,16 +41,20 @@ const ProductManagement = () => {
   };
 
   const load = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams({ page, limit: LIMIT });
-      if (search)    params.set("search",   search);
+      if (search) params.set("search", search);
       if (filterCat) params.set("category", filterCat);
       const res = await axiosInstance.get(`/api/products?${params}`);
       // Backend trả { message, data: [...] } hoặc { data: { products, total } }
       const body = res.data;
       const list = body?.data?.products || body?.data || body?.products || [];
-      const tot  = body?.data?.total    || body?.total || (Array.isArray(list) ? list.length : 0);
+      const tot =
+        body?.data?.total ||
+        body?.total ||
+        (Array.isArray(list) ? list.length : 0);
       setProducts(Array.isArray(list) ? list : []);
       setTotal(tot);
     } catch (e) {
@@ -47,26 +64,33 @@ const ProductManagement = () => {
     }
   }, [page, search, filterCat]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   useEffect(() => {
-    axiosInstance.get("/api/categories")
-      .then(r => {
+    axiosInstance
+      .get("/api/categories")
+      .then((r) => {
         const list = r.data?.data || r.data?.categories || r.data || [];
         setCategories(Array.isArray(list) ? list : []);
       })
       .catch(() => {});
   }, []);
 
-  const openAdd  = () => { setForm(blank); setEditItem(null); setShowForm(true); };
-  const openEdit = p => {
+  const openAdd = () => {
+    setForm(blank);
+    setEditItem(null);
+    setShowForm(true);
+  };
+  const openEdit = (p) => {
     setForm({
-      name:        p.name || "",
+      name: p.name || "",
       description: p.description || "",
-      price:       String(p.price || ""),
-      category:    p.category?._id || p.category || "",
-      quantity:    String(p.quantity || ""),
-      images:      (p.images || []).join(", "),
+      price: String(p.price || ""),
+      category: p.category?._id || p.category || "",
+      quantity: String(p.quantity || ""),
+      imageUrl: p.imageUrl || "",
     });
     setEditItem(p);
     setShowForm(true);
@@ -77,14 +101,12 @@ const ProductManagement = () => {
     setSaving(true);
     try {
       const body = {
-        name:        form.name,
+        name: form.name,
         description: form.description,
-        price:       parseFloat(form.price),
-        quantity:    parseInt(form.quantity),
-        category:    form.category,
-        images:      form.images
-          ? form.images.split(",").map(s => s.trim()).filter(Boolean)
-          : [],
+        price: parseFloat(form.price),
+        quantity: parseInt(form.quantity),
+        category: form.category,
+        imageUrl: form.imageUrl || "",
       };
       if (editItem) {
         await axiosInstance.put(`/api/products/${editItem._id}`, body);
@@ -113,25 +135,6 @@ const ProductManagement = () => {
     }
   };
 
-  const exportCSV = () => {
-    const rows = [
-      ["ID","Tên sản phẩm","Danh mục","Giá","Tồn kho","Mô tả"],
-      ...products.map(p => [
-        p._id, p.name,
-        p.category?.name || p.category || "",
-        p.price, p.quantity, p.description || "",
-      ]),
-    ];
-    const csv = rows.map(r =>
-      r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")
-    ).join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
-    a.download = "san-pham.csv";
-    a.click();
-    showT("Đã xuất file Excel");
-  };
-
   const pageCount = Math.max(1, Math.ceil(total / LIMIT));
 
   return (
@@ -141,24 +144,43 @@ const ProductManagement = () => {
       <div className="toolbar">
         <div className="search-wrap">
           <span className="search-icon"></span>
-          <input className="inp" style={{ paddingLeft: 34 }} value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Tìm kiếm sản phẩm..." />
+          <input
+            className="inp"
+            style={{ paddingLeft: 34 }}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Tìm kiếm sản phẩm..."
+          />
         </div>
-        <select className="inp select-cat" value={filterCat}
-          onChange={e => { setFilterCat(e.target.value); setPage(1); }}>
+        <select
+          className="inp select-cat"
+          value={filterCat}
+          onChange={(e) => {
+            setFilterCat(e.target.value);
+            setPage(1);
+          }}
+        >
           <option value="">Tất cả danh mục</option>
-          {categories.map(c => (
-            <option key={c._id} value={c._id}>{c.name}</option>
+          {categories.map((c) => (
+            <option key={c._id} value={c._id}>
+              {c.name}
+            </option>
           ))}
         </select>
-        
-        <button onClick={openAdd}   className="btn-primary">Thêm sản phẩm mới</button>
+
+        <button onClick={openAdd} className="btn-primary">
+          Thêm sản phẩm mới
+        </button>
       </div>
 
       <div className="card table-card">
         {loading ? (
-          <div className="table-loading"><Spinner size={32} /></div>
+          <div className="table-loading">
+            <Spinner size={32} />
+          </div>
         ) : error ? (
           <div className="table-error"> {error}</div>
         ) : (
@@ -167,52 +189,101 @@ const ProductManagement = () => {
               <table className="tbl">
                 <thead>
                   <tr>
-                    {["ẢNH","TÊN SẢN PHẨM","DANH MỤC","GIÁ","TỒN KHO","THAO TÁC"].map(h => (
+                    {[
+                      "ẢNH",
+                      "TÊN SẢN PHẨM",
+                      "DANH MỤC",
+                      "GIÁ",
+                      "TỒN KHO",
+                      "THAO TÁC",
+                    ].map((h) => (
                       <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {products.map((p, i) => (
-                    <tr key={p._id} className="row-hover"
-                      style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                    <tr
+                      key={p._id}
+                      className="row-hover"
+                      style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}
+                    >
                       <td>
-                        {p.images?.[0]
-                          ? <img src={p.images[0]} className="product-img" alt={p.name} />
-                          : <div className="product-img placeholder"></div>
-                        }
+                        {p.imageUrl ? (
+                          <img
+                            src={p.imageUrl}
+                            className="product-img"
+                            alt={p.name}
+                          />
+                        ) : (
+                          <div className="product-img placeholder"></div>
+                        )}
                       </td>
                       <td>
                         <div className="product-name">{p.name}</div>
-                        {p.description && <div className="product-desc">{p.description}</div>}
+                        {p.description && (
+                          <div className="product-desc">{p.description}</div>
+                        )}
                       </td>
-                      <td className="product-cat">{p.category?.name || p.category || "—"}</td>
+                      <td className="product-cat">
+                        {p.category?.name || p.category || "—"}
+                      </td>
                       <td className="product-price">{vnd(p.price)}</td>
-                      <td><StockBadge n={p.quantity || 0} /></td>
+                      <td>
+                        <StockBadge n={p.quantity || 0} />
+                      </td>
                       <td>
                         <div className="action-btns">
-                          <button className="btn-icon-blue" onClick={() => openEdit(p)}> Sửa</button>
-                          <button className="btn-icon-red"  onClick={() => del(p._id, p.name)}> Xoá</button>
+                          <button
+                            className="btn-icon-blue"
+                            onClick={() => openEdit(p)}
+                          >
+                            {" "}
+                            Sửa
+                          </button>
+                          <button
+                            className="btn-icon-red"
+                            onClick={() => del(p._id, p.name)}
+                          >
+                            {" "}
+                            Xoá
+                          </button>
                         </div>
                       </td>
                     </tr>
                   ))}
                   {products.length === 0 && (
-                    <tr><td colSpan={6} className="empty-row">
-                      <div className="empty-icon"></div>
-                      Không có sản phẩm nào
-                    </td></tr>
+                    <tr>
+                      <td colSpan={6} className="empty-row">
+                        <div className="empty-icon"></div>
+                        Không có sản phẩm nào
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
             </div>
             <div className="pagination">
-              <span>Trang {page}/{pageCount} · {total} sản phẩm</span>
+              <span>
+                Trang {page}/{pageCount} · {total} sản phẩm
+              </span>
               <div style={{ display: "flex", gap: 6 }}>
-                <button className="btn-outline" style={{ padding: "6px 14px" }}
-                  onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Trước</button>
-                <button className="btn-outline" style={{ padding: "6px 14px" }}
-                  onClick={() => setPage(p => Math.min(pageCount, p + 1))} disabled={page === pageCount}>Sau</button>
+                <button
+                  className="btn-outline"
+                  style={{ padding: "6px 14px" }}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Trước
+                </button>
+                <button
+                  className="btn-outline"
+                  style={{ padding: "6px 14px" }}
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                  disabled={page === pageCount}
+                >
+                  Sau
+                </button>
               </div>
             </div>
           </>
@@ -220,56 +291,104 @@ const ProductManagement = () => {
       </div>
 
       {showForm && (
-        <Modal title={editItem ? " Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
-          onClose={() => setShowForm(false)}>
+        <Modal
+          title={editItem ? " Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
+          onClose={() => setShowForm(false)}
+        >
           <div className="field">
             <label>Tên sản phẩm *</label>
-            <input className="inp" value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="VD: Sâm Hàn Quốc 6 Năm Tuổi" />
+            <input
+              className="inp"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="VD: Sâm Hàn Quốc 6 Năm Tuổi"
+            />
           </div>
           <div className="grid-2">
             <div className="field">
               <label>Giá bán (₫) *</label>
-              <input className="inp" type="number" value={form.price}
-                onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                placeholder="850000" />
+              <input
+                className="inp"
+                type="number"
+                value={form.price}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, price: e.target.value }))
+                }
+                placeholder="850000"
+              />
             </div>
             <div className="field">
               <label>Số lượng *</label>
-              <input className="inp" type="number" value={form.quantity}
-                onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-                placeholder="100" />
+              <input
+                className="inp"
+                type="number"
+                value={form.quantity}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, quantity: e.target.value }))
+                }
+                placeholder="100"
+              />
             </div>
           </div>
           <div className="field">
             <label>Danh mục</label>
-            <select className="inp" value={form.category}
-              onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+            <select
+              className="inp"
+              value={form.category}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, category: e.target.value }))
+              }
+            >
               <option value="">-- Chọn danh mục --</option>
-              {categories.map(c => (
-                <option key={c._id} value={c._id}>{c.name}</option>
+              {categories.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
               ))}
             </select>
           </div>
           <div className="field">
             <label>Mô tả</label>
-            <textarea className="inp" rows={3} style={{ resize: "vertical" }}
+            <textarea
+              className="inp"
+              rows={3}
+              style={{ resize: "vertical" }}
               value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Mô tả sản phẩm..." />
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
+              placeholder="Mô tả sản phẩm..."
+            />
           </div>
           <div className="field">
-            <label>Ảnh (URLs, cách nhau bởi dấu phẩy)</label>
-            <input className="inp" value={form.images}
-              onChange={e => setForm(f => ({ ...f, images: e.target.value }))}
-              placeholder="https://example.com/img.jpg" />
+            <label>Ảnh URL</label>
+            <input
+              className="inp"
+              value={form.imageUrl}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, imageUrl: e.target.value }))
+              }
+              placeholder="https://example.com/img.jpg"
+            />
           </div>
           <div className="modal-footer">
-            <button className="btn-outline" onClick={() => setShowForm(false)}>Huỷ</button>
-            <button className="btn-primary" onClick={save}
-              disabled={saving || !form.name || !form.price || form.quantity === ""}>
-              {saving ? <Spinner size={14} /> : editItem ? "Lưu thay đổi" : "Thêm mới"}
+            <button className="btn-outline" onClick={() => setShowForm(false)}>
+              Huỷ
+            </button>
+            <button
+              className="btn-primary"
+              onClick={save}
+              disabled={
+                saving || !form.name || !form.price || form.quantity === ""
+              }
+            >
+              {saving ? (
+                <Spinner size={14} />
+              ) : editItem ? (
+                "Lưu thay đổi"
+              ) : (
+                "Thêm mới"
+              )}
             </button>
           </div>
         </Modal>

@@ -4,6 +4,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatPrice, calcDiscount } from "../../services/productService";
+import { ShoppingCart } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { addToWishlist } from "../../api/addWishList";
 
 const FALLBACK_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='200' viewBox='0 0 220 200'%3E%3Crect width='220' height='200' fill='%23f5e8e4'/%3E%3Ctext x='110' y='95' text-anchor='middle' font-size='32' fill='%23d4a89a'%3E%F0%9F%8E%81%3C/text%3E%3Ctext x='110' y='125' text-anchor='middle' font-size='12' fill='%23c0a09a'%3EKh%C3%B4ng c%C3%B3 %E1%BA%A3nh%3C/text%3E%3C/svg%3E";
@@ -56,10 +59,12 @@ function StarRating({ rating }) {
   );
 }
 
-export default function ProductCard({ product, index = 0, onClick }) {
+export default function ProductCard({ product, index = 0 }) {
   const [ref, inView] = useInView();
   const [hovered, setHovered] = useState(false);
+  const [added, setAdded] = useState(false);
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   // imageUrl từ BE là array → lấy phần tử đầu, lọc placeholder
   const imageUrl = sanitizeImage(
@@ -75,18 +80,39 @@ export default function ProductCard({ product, index = 0, onClick }) {
   const discount = calcDiscount(product.price, product.discountPrice);
   const inStock = product.quantity > 0;
 
-  const handleViewDetail = (e) => {
-    e.stopPropagation();
-    if (!inStock) return;
+  const handleViewDetail = () => {
     navigate(`/qua-tet/${product._id}`);
+  };
+
+  const handleAddToCart = async (e) => {
+    e.stopPropagation();
+
+    if (!token) {
+      alert("Vui lòng đăng nhập trước");
+      navigate("/login");
+      return;
+    }
+
+    if (!inStock) {
+      alert("Sản phẩm đã hết hàng");
+      return;
+    }
+
+    try {
+      await addToWishlist(product._id, 1);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch (error) {
+      alert(error.response?.data?.message || "Không thể thêm vào giỏ hàng");
+    }
   };
 
   const tags = Array.isArray(product.tags) ? product.tags : [];
 
-
   return (
     <div
-      ref={ref}  
+      ref={ref}
+      onClick={handleViewDetail}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -295,8 +321,8 @@ export default function ProductCard({ product, index = 0, onClick }) {
 
         {/* Nút mua */}
         <button
-          onClick={handleViewDetail}
-          disabled={!inStock}
+          onClick={handleAddToCart}
+          disabled={!inStock || added}
           style={{
             width: "100%",
             padding: "10px",
@@ -306,20 +332,26 @@ export default function ProductCard({ product, index = 0, onClick }) {
                 : "transparent"
               : "#eee",
             border: `1.5px solid ${inStock ? "#c0392b" : "#ddd"}`,
-            color: inStock
-              ? hovered
-                ? "#fff"
-                : "#c0392b"
-              : "#aaa",
+            color: inStock ? (hovered ? "#fff" : "#c0392b") : "#aaa",
             borderRadius: 8,
             fontFamily: "inherit",
             fontWeight: 700,
             fontSize: 12,
             cursor: inStock ? "pointer" : "not-allowed",
             transition: "all .25s",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
           }}
         >
-          {inStock ? "🛒 Xem chi tiết" : "Hết hàng"}
+          <ShoppingCart
+            size={16}
+            color={inStock ? (hovered ? "#fff" : "#c0392b") : "#aaa"}
+          />
+          <span style={{ lineHeight: 1 }}>
+            {!inStock ? "Hết hàng" : added ? "✓ Đã thêm" : "Thêm vào giỏ"}
+          </span>
         </button>
       </div>
     </div>

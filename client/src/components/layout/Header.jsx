@@ -66,7 +66,7 @@ export default function Header() {
 
   const navItems = [
     { label: "Trang chủ", icon: <Home size={16} />, to: "/" },
-    { label: "Quà tết ▾", icon: <Gift size={16} />, to: "/qua-tet" },
+    { label: "Quà tết", icon: <Gift size={16} />, to: "/qua-tet" },
     { label: "Blog", icon: <BookOpen size={16} />, to: "/blog" },
   ];
 

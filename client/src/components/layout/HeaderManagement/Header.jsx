@@ -1,3 +1,4 @@
+import { User } from "lucide-react";
 import "./Header.css";
 
 const Header = ({ tab, setTab, user, onLogout }) => {
@@ -20,7 +21,7 @@ const Header = ({ tab, setTab, user, onLogout }) => {
         </div>
         <div className="header-actions">
           <span className="header-user">
-            👤 {user?.fullname || user?.name || user?.email || "Admin"}
+            <User size={16} strokeWidth={1.75} /> {user?.fullname || user?.name || user?.email || "Admin"}
           </span>
           <button className="btn-logout" onClick={onLogout}>
             Đăng xuất

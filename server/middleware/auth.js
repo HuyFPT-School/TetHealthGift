@@ -5,14 +5,15 @@ const authenticateToken = (req, res, next) => {
   const token = authHeader && authHeader.split(" ")[1];
   if (token == null) return res.sendStatus(401);
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
+    // Trả về 401 cho token invalid/expired để client tự động refresh
+    if (err) return res.sendStatus(401);
     req.user = user;
     next();
   });
 };
 const checkRole = (roleDuocPhep) => {
   return (req, res, next) => {
-    const userRole = req.user.role; 
+    const userRole = req.user.role;
     if (roleDuocPhep.includes(userRole)) {
       next();
     } else {

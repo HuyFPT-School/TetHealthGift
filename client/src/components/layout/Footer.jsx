@@ -3,15 +3,13 @@ export default function Footer() {
     <footer
       style={{ background: "#fdf0e8", fontFamily: "'Segoe UI', sans-serif" }}
     >
-      {/* Logo + Zalo row */}
+      {/* Logo row */}
       <div
         style={{
           padding: "32px 60px 20px",
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "center",
           alignItems: "center",
-          flexWrap: "wrap",
-          gap: "20px",
         }}
       >
         <div
@@ -39,43 +37,6 @@ export default function Footer() {
             health<span style={{ color: "#e67e22" }}>gift</span>
           </span>
         </div>
-        <button
-          style={{
-            background: "transparent",
-            border: "2px solid #1e90ff",
-            color: "#1e90ff",
-            padding: "12px 24px",
-            borderRadius: "30px",
-            fontWeight: "600",
-            fontSize: "14px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            minWidth: "260px",
-            justifyContent: "space-between",
-          }}
-        >
-          <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{
-                background: "#00c6ff",
-                color: "#fff",
-                borderRadius: "50%",
-                width: "22px",
-                height: "22px",
-                fontSize: "12px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              Z
-            </span>
-            Liên hệ trực tiếp qua Zalo
-          </span>
-          <span>›</span>
-        </button>
       </div>
 
       {/* Divider */}

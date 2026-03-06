@@ -176,15 +176,15 @@ export default function ProductDetailPage() {
   const discount =
     product.discountPrice && product.discountPrice < product.price
       ? Math.round(
-        ((product.price - product.discountPrice) / product.price) * 100,
-      )
+          ((product.price - product.discountPrice) / product.price) * 100,
+        )
       : 0;
 
   const avgRating = product.comments?.length
     ? (
-      product.comments.reduce((s, c) => s + c.rating, 0) /
-      product.comments.length
-    ).toFixed(1)
+        product.comments.reduce((s, c) => s + c.rating, 0) /
+        product.comments.length
+      ).toFixed(1)
     : 0;
 
   const tags = Array.isArray(product.tags) ? product.tags : [];
@@ -206,7 +206,6 @@ export default function ProductDetailPage() {
 
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
-
     } catch (error) {
       alert(error.message);
     }
@@ -489,34 +488,6 @@ export default function ProductDetailPage() {
                 {added ? "✓ Đã thêm vào giỏ!" : "🛒 Thêm vào giỏ hàng"}
               </button>
             </div>
-
-            <button
-              style={{
-                width: "100%",
-                padding: "12px",
-                background: "transparent",
-                border: "2px solid #c0392b",
-                color: "#c0392b",
-                borderRadius: 10,
-                fontFamily: "inherit",
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: "pointer",
-                transition: "all .2s",
-                marginBottom: 14,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#c0392b";
-                e.currentTarget.style.color = "#fff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#c0392b";
-              }}
-            >
-              💬 Tư vấn miễn phí qua Zalo
-            </button>
-
             <div
               style={{
                 display: "flex",

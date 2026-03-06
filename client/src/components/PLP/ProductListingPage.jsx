@@ -7,6 +7,7 @@ import { fetchProducts } from "../../services/productService";
 import ProductCard from "./ProductCard";
 import FilterSidebar from "./FilterSidebar";
 import SearchBar from "./SearchBar";
+import { Search } from "lucide-react";
 
 const SORT_MAP = {
   default: undefined,
@@ -40,14 +41,6 @@ const FILTER_OPTIONS = {
   herbs: [],
   benefits: [],
 };
-
-const SORT_OPTIONS = [
-  { value: "default", label: "Mặc định" },
-  { value: "popular", label: "Bán chạy nhất" },
-  { value: "rating", label: "Đánh giá cao" },
-  { value: "price-asc", label: "Giá thấp → cao" },
-  { value: "price-desc", label: "Giá cao → thấp" },
-];
 
 function SkeletonCard() {
   return (
@@ -231,7 +224,7 @@ export default function ProductListingPage() {
           <h1
             style={{ color: "#fff", fontSize: 28, fontWeight: 700, margin: 0 }}
           >
-            🎁 Hộp Quà Tết 2026
+            Hộp Quà Tết 2026
           </h1>
           <p
             style={{
@@ -354,38 +347,6 @@ export default function ProductListingPage() {
                 />
               )}
             </div>
-
-            {/* Sort */}
-            <div
-              style={{
-                marginLeft: "auto",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <span style={{ fontSize: 13, color: "#888" }}>Sắp xếp:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  padding: "8px 14px",
-                  border: "1.5px solid #e0c0bc",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontFamily: "inherit",
-                  background: "#fff",
-                  color: "#333",
-                  cursor: "pointer",
-                }}
-              >
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
           {/* Error */}
@@ -436,7 +397,9 @@ export default function ProductListingPage() {
             <div
               style={{ textAlign: "center", padding: "60px 0", color: "#aaa" }}
             >
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>
+                <Search />
+              </div>
               <p style={{ fontSize: 16, fontWeight: 600 }}>
                 Không tìm thấy sản phẩm phù hợp
               </p>
