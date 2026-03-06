@@ -83,7 +83,7 @@ function Login() {
         serverMessage || error?.message || "Không thể kết nối máy chủ.";
       showStatus({
         type: "error",
-        message: normalizeErrorMessage(errorMessage),
+        message: errorMessage,
       });
     } finally {
       setLoading(false);

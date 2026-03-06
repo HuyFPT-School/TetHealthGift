@@ -50,15 +50,10 @@ const api = {
 
   async _tryRefresh() {
     try {
-      const storedRefreshToken = localStorage.getItem("refreshToken");
-      console.log("storedRefreshToken:", storedRefreshToken);
-      if (!storedRefreshToken) return false;
-
       const res = await fetch(`${BASE}/api/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Gửi qua body vì withCredentials:false (không dùng cookie)
-        body: JSON.stringify({ refreshToken: storedRefreshToken }),
+        credentials: "include", // Send httpOnly refreshToken cookie
       });
       if (!res.ok) return false;
       const data = await res.json();

@@ -319,6 +319,7 @@ export default function AccountPage() {
                         previewUrl={avatarPreview || profile?.avatar}
                         onChange={handleAvatarChange}
                         loading={busySection === "profile"}
+                        uploadStatus={profileStatus}
                       />
                     </div>
                   )}
