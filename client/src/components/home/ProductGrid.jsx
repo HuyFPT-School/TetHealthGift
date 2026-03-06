@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import ProductCard from "./ProductCard";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ProductGrid() {
   const [products, setProducts] = useState([]);

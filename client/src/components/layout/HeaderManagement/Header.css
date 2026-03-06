@@ -1,0 +1,97 @@
+.header {
+  background: linear-gradient(135deg, #9B1C1C, #7F1515);
+  box-shadow: 0 2px 12px rgba(0,0,0,.18);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Top bar */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 32px;
+  height: 64px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-logo {
+  font-size: 26px;
+}
+
+.header-title {
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -.3px;
+}
+
+.header-subtitle {
+  color: rgba(255,255,255,.7);
+  font-size: 12px;
+  margin-top: 1px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-user {
+  color: rgba(255,255,255,.85);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-logout {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: background .15s;
+}
+.btn-logout:hover {
+  background: rgba(255,255,255,.22);
+}
+
+/* Nav tabs */
+.header-nav {
+  display: flex;
+  gap: 28px;
+  padding: 0 32px;
+  background: #fff;
+  border-bottom: 1px solid #EEE;
+}
+
+.tab-item {
+  cursor: pointer;
+  padding: 14px 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  border-bottom: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: color .15s;
+  user-select: none;
+}
+.tab-item:hover  { color: #9B1C1C; }
+.tab-item.active {
+  color: #9B1C1C;
+  border-bottom-color: #9B1C1C;
+  font-weight: 700;
+}

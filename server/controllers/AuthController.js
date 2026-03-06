@@ -6,12 +6,7 @@ const {
   sendResetPassword,
   sendVerificationEmail,
 } = require("../config/mailer");
-const {
-  saveRefreshToken,
-  removeRefreshToken,
-  findRefreshToken,
-  replaceRefreshToken,
-} = require("../services/tokenService");
+const tokenService = require("../services/tokenService");
 const UserModel = require("../models/UserModel");
 
 const PW_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,30}$/;
@@ -48,7 +43,7 @@ const login = async (req, res) => {
       expiresIn: "7d",
     });
 
-    await saveRefreshToken(user.id, refreshToken);
+    await tokenService.saveRefreshToken(user.id, refreshToken);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -75,7 +70,7 @@ const logout = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (refreshToken) {
-      await removeRefreshToken(refreshToken);
+      await tokenService.removeRefreshToken(refreshToken);
     }
     res.clearCookie("refreshToken", {
       httpOnly: true,
@@ -94,7 +89,7 @@ const token = async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) return res.status(401).json({ error: "Không có token" });
 
-    const stored = await findRefreshToken(refreshToken);
+    const stored = await tokenService.findRefreshToken(refreshToken);
     if (!stored) return res.status(403).json({ error: "Token không hợp lệ" });
 
     jwt.verify(
@@ -119,7 +114,11 @@ const token = async (req, res) => {
             process.env.REFRESH_TOKEN_SECRET,
             { expiresIn: "7d" },
           );
-          await replaceRefreshToken(user.id, refreshToken, newRefreshToken);
+          await tokenService.replaceRefreshToken(
+            user.id,
+            refreshToken,
+            newRefreshToken,
+          );
 
           const accessToken = generateAccessToken({
             id: user.id,
@@ -359,7 +358,7 @@ const verifyEmail = async (req, res) => {
       { expiresIn: "7d" },
     );
 
-    await saveRefreshToken(user._id, refreshToken);
+    await tokenService.saveRefreshToken(user._id, refreshToken);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,

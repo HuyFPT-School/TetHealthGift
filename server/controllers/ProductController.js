@@ -1,9 +1,9 @@
-const Product = require("../models/ProductModel");
+const productService = require("../services/ProductService");
 const Order = require("../models/OrderModel");
 
 const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find({}).populate("category");
+    const products = await productService.getAllProducts();
     res.status(200).json({
       message: "Lấy danh sách sản phẩm thành công",
       data: products,
@@ -16,9 +16,7 @@ const getAllProducts = async (req, res) => {
 const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id)
-      .populate("category")
-      .populate("comments.author", "fullname avatar");
+    const product = await productService.getProductById(id);
 
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
@@ -54,7 +52,7 @@ const createProduct = async (req, res) => {
       });
     }
 
-    const newProduct = new Product({
+    const productData = {
       name,
       price,
       description,
@@ -65,10 +63,9 @@ const createProduct = async (req, res) => {
       discountPrice,
       quantity,
       imageUrl,
-    });
+    };
 
-    await newProduct.save();
-    await newProduct.populate("category");
+    const newProduct = await productService.createProduct(productData);
 
     res.status(201).json({
       message: "Tạo sản phẩm thành công",
@@ -84,10 +81,7 @@ const updateProduct = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    const product = await Product.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    }).populate("category");
+    const product = await productService.updateProduct(id, updateData);
 
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
@@ -105,7 +99,7 @@ const updateProduct = async (req, res) => {
 const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id);
+    const product = await productService.getProductById(id);
 
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
@@ -119,11 +113,12 @@ const deleteProduct = async (req, res) => {
 
     if (ordersWithProduct) {
       return res.status(400).json({
-        message: "Không thể xóa sản phẩm đang có trong đơn hàng đang xử lý hoặc vận chuyển",
+        message:
+          "Không thể xóa sản phẩm đang có trong đơn hàng đang xử lý hoặc vận chuyển",
       });
     }
 
-    await Product.findByIdAndDelete(id);
+    await productService.deleteProduct(id);
 
     res.status(200).json({
       message: "Xóa sản phẩm thành công",
@@ -145,20 +140,20 @@ const addComment = async (req, res) => {
       });
     }
 
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
-    }
-
-    product.comments.push({ rating, content, author });
-    await product.save();
-    await product.populate("comments.author", "fullname avatar");
+    const comments = await productService.addComment(id, {
+      rating,
+      content,
+      author,
+    });
 
     res.status(201).json({
       message: "Thêm đánh giá thành công",
-      data: product.comments,
+      data: comments,
     });
   } catch (error) {
+    if (error.message.includes("Không tìm thấy")) {
+      return res.status(404).json({ message: error.message });
+    }
     res.status(500).json({ message: "Lỗi server: " + error.message });
   }
 };
@@ -169,33 +164,22 @@ const updateComment = async (req, res) => {
     const { rating, content } = req.body;
     const userId = req.user.id;
 
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
-    }
-
-    const comment = product.comments.id(commentId);
-    if (!comment) {
-      return res.status(404).json({ message: "Không tìm thấy đánh giá" });
-    }
-
-    if (comment.author.toString() !== userId) {
-      return res.status(403).json({
-        message: "Bạn không có quyền chỉnh sửa đánh giá này",
-      });
-    }
-
-    if (rating) comment.rating = rating;
-    if (content) comment.content = content;
-
-    await product.save();
-    await product.populate("comments.author", "fullname avatar");
+    const comments = await productService.updateComment(id, commentId, userId, {
+      rating,
+      content,
+    });
 
     res.status(200).json({
       message: "Cập nhật đánh giá thành công",
-      data: product.comments,
+      data: comments,
     });
   } catch (error) {
+    if (error.message.includes("Không tìm thấy")) {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message.includes("không có quyền")) {
+      return res.status(403).json({ message: error.message });
+    }
     res.status(500).json({ message: "Lỗi server: " + error.message });
   }
 };
@@ -206,29 +190,18 @@ const deleteComment = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
-    }
-
-    const comment = product.comments.id(commentId);
-    if (!comment) {
-      return res.status(404).json({ message: "Không tìm thấy đánh giá" });
-    }
-
-    if (comment.author.toString() !== userId && userRole !== "Admin") {
-      return res.status(403).json({
-        message: "Bạn không có quyền xóa đánh giá này",
-      });
-    }
-
-    product.comments.pull(commentId);
-    await product.save();
+    await productService.deleteComment(id, commentId, userId, userRole);
 
     res.status(200).json({
       message: "Xóa đánh giá thành công",
     });
   } catch (error) {
+    if (error.message.includes("Không tìm thấy")) {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message.includes("không có quyền")) {
+      return res.status(403).json({ message: error.message });
+    }
     res.status(500).json({ message: "Lỗi server: " + error.message });
   }
 };

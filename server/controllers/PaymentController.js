@@ -1,6 +1,6 @@
 const vnpayService = require("../services/vnpayService");
 const momoService = require("../services/momoService");
-const Order = require("../models/OrderModel");
+const orderService = require("../services/OrderService");
 
 /**
  * Tạo URL thanh toán VNPAY
@@ -17,19 +17,11 @@ const createVNPayPayment = async (req, res) => {
       });
     }
 
-    // Kiểm tra đơn hàng có tồn tại không
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy đơn hàng",
-      });
-    }
-
-    // Lấy amount từ đơn hàng
-    const amount = order.totalAmount;
+    // Kiểm tra đơn hàng - sử dụng OrderService
+    const order = await orderService.getOrderById(orderId);
 
     // Validate amount
+    const amount = order.totalAmount;
     if (amount <= 0) {
       return res.status(400).json({
         success: false,
@@ -94,20 +86,13 @@ const vnpayReturn = async (req, res) => {
       });
     }
 
-    // Tìm đơn hàng
-    const order = await Order.findById(verifyResult.orderId);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy đơn hàng",
-      });
-    }
-
-    // Cập nhật trạng thái thanh toán
+    // Cập nhật trạng thái thanh toán - sử dụng OrderService
     if (verifyResult.isSuccess) {
-      order.paymentStatus = "paid";
-      order.paymentMethod = "vnpay";
-      await order.save();
+      await orderService.updatePaymentStatus(
+        verifyResult.orderId,
+        "paid",
+        "vnpay",
+      );
 
       res.status(200).json({
         success: true,
@@ -121,8 +106,7 @@ const vnpayReturn = async (req, res) => {
         },
       });
     } else {
-      order.paymentStatus = "failed";
-      await order.save();
+      await orderService.updatePaymentStatus(verifyResult.orderId, "failed");
 
       res.status(400).json({
         success: false,
@@ -154,19 +138,11 @@ const createMoMoPayment = async (req, res) => {
       });
     }
 
-    // Kiểm tra đơn hàng có tồn tại không
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy đơn hàng",
-      });
-    }
-
-    // Lấy amount từ đơn hàng
-    const amount = order.totalAmount;
+    // Kiểm tra đơn hàng - sử dụng OrderService
+    const order = await orderService.getOrderById(orderId);
 
     // Validate amount
+    const amount = order.totalAmount;
     if (amount <= 0) {
       return res.status(400).json({
         success: false,
@@ -243,11 +219,13 @@ const momoReturn = async (req, res) => {
       });
     }
 
-    // Cập nhật trạng thái thanh toán
+    // Cập nhật trạng thái thanh toán - sử dụng OrderService
     if (verifyResult.isSuccess) {
-      order.paymentStatus = "paid";
-      order.paymentMethod = "momo";
-      await order.save();
+      await orderService.updatePaymentStatus(
+        verifyResult.orderId,
+        "paid",
+        "momo",
+      );
 
       res.status(200).json({
         success: true,
@@ -260,8 +238,7 @@ const momoReturn = async (req, res) => {
         },
       });
     } else {
-      order.paymentStatus = "failed";
-      await order.save();
+      await orderService.updatePaymentStatus(verifyResult.orderId, "failed");
 
       res.status(400).json({
         success: false,
@@ -297,20 +274,13 @@ const momoIPN = async (req, res) => {
       });
     }
 
-    // Tìm đơn hàng
-    const order = await Order.findById(verifyResult.orderId);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy đơn hàng",
-      });
-    }
-
-    // Cập nhật trạng thái thanh toán
+    // Cập nhật trạng thái thanh toán - sử dụng OrderService
     if (verifyResult.isSuccess) {
-      order.paymentStatus = "paid";
-      order.paymentMethod = "momo";
-      await order.save();
+      await orderService.updatePaymentStatus(
+        verifyResult.orderId,
+        "paid",
+        "momo",
+      );
 
       // Response cho MoMo biết đã nhận IPN
       res.status(200).json({
@@ -318,8 +288,7 @@ const momoIPN = async (req, res) => {
         message: "Success",
       });
     } else {
-      order.paymentStatus = "failed";
-      await order.save();
+      await orderService.updatePaymentStatus(verifyResult.orderId, "failed");
 
       res.status(200).json({
         resultCode: verifyResult.resultCode,
