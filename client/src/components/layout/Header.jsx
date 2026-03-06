@@ -6,15 +6,21 @@ import {
   BookOpen,
   Search,
   ShoppingCart,
+  Heart,
   User,
   ChevronDown,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { getWishlist } from "../../api/addWishList";
+import { formatPrice } from "../../services/productService";
 
 export default function Header() {
   const [searchValue, setSearchValue] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [showCartDropdown, setShowCartDropdown] = useState(false);
+  const cartDropdownTimeout = useRef(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -28,6 +34,22 @@ export default function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!user) {
+        setWishlistItems([]);
+        return;
+      }
+      try {
+        const data = await getWishlist();
+        setWishlistItems(data.wishlist || []);
+      } catch (error) {
+        console.error("Failed to fetch wishlist:", error);
+      }
+    };
+    fetchWishlist();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -389,37 +411,219 @@ export default function Header() {
 
           {/* Cart */}
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-              color: "#555",
-              fontSize: "13px",
+            style={{ position: "relative" }}
+            onMouseEnter={() => {
+              clearTimeout(cartDropdownTimeout.current);
+              setShowCartDropdown(true);
+            }}
+            onMouseLeave={() => {
+              cartDropdownTimeout.current = setTimeout(
+                () => setShowCartDropdown(false),
+                200
+              );
             }}
           >
-            <span style={{ position: "relative" }}>
-              <ShoppingCart size={24} color="#555" />
-              <span
+            <div
+              onClick={() => navigate("/cart")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
+                color: "#555",
+                fontSize: "13px",
+              }}
+            >
+              <span style={{ position: "relative" }}>
+                <ShoppingCart size={24} color="#555" />
+                {wishlistItems.length > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      right: "-8px",
+                      background: "#c0392b",
+                      color: "#fff",
+                      borderRadius: "50%",
+                      width: "16px",
+                      height: "16px",
+                      fontSize: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {wishlistItems.length}
+                  </span>
+                )}
+              </span>
+            </div>
+
+            {/* Cart hover dropdown */}
+            {showCartDropdown && (
+              <div
                 style={{
                   position: "absolute",
-                  top: "-6px",
-                  right: "-8px",
-                  background: "#c0392b",
-                  color: "#fff",
-                  borderRadius: "50%",
-                  width: "16px",
-                  height: "16px",
-                  fontSize: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  width: "360px",
+                  background: "#fff",
+                  borderRadius: "10px",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                  border: "1px solid #f0e8e0",
+                  zIndex: 1000,
+                  overflow: "hidden",
                 }}
               >
-                0
-              </span>
-            </span>
-            <span>0 đ</span>
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderBottom: "1px solid #f0e8e0",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#333",
+                  }}
+                >
+                  Sản phẩm mới thêm
+                </div>
+                {wishlistItems.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "30px 16px",
+                      textAlign: "center",
+                      color: "#999",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Chưa có sản phẩm trong giỏ hàng
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                      {wishlistItems.slice(0, 5).map((item) => {
+                        const product = item.product;
+                        if (!product) return null;
+                        const price =
+                          product.discountPrice || product.price;
+                        return (
+                          <div
+                            key={product._id}
+                            onClick={() => {
+                              setShowCartDropdown(false);
+                              navigate(`/qua-tet/${product._id}`);
+                            }}
+                            style={{
+                              display: "flex",
+                              gap: "12px",
+                              padding: "10px 16px",
+                              cursor: "pointer",
+                              transition: "background 0.15s",
+                              borderBottom: "1px solid #f8f4f0",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background = "#FFF8F0")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background =
+                                "transparent")
+                            }
+                          >
+                            <img
+                              src={product.imageUrl || "/placeholder.png"}
+                              alt={product.name}
+                              style={{
+                                width: "48px",
+                                height: "48px",
+                                objectFit: "cover",
+                                borderRadius: "6px",
+                                border: "1px solid #eee",
+                              }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: "13px",
+                                  color: "#333",
+                                  fontWeight: "500",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                }}
+                              >
+                                {product.name}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#999",
+                                  marginTop: "2px",
+                                }}
+                              >
+                                x{item.quantity || 1}
+                              </div>
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "13px",
+                                color: "#C62828",
+                                fontWeight: "600",
+                                whiteSpace: "nowrap",
+                                alignSelf: "center",
+                              }}
+                            >
+                              {formatPrice(price)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div
+                      style={{
+                        padding: "12px 16px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        borderTop: "1px solid #f0e8e0",
+                        background: "#FFFAF5",
+                      }}
+                    >
+                      <span style={{ fontSize: "13px", color: "#888" }}>
+                        {wishlistItems.length > 5
+                          ? `${wishlistItems.length - 5} sản phẩm khác`
+                          : `${wishlistItems.length} sản phẩm`}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowCartDropdown(false);
+                          navigate("/cart");
+                        }}
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #C62828 0%, #FF6B35 100%)",
+                          color: "#fff",
+                          border: "none",
+                          padding: "8px 20px",
+                          borderRadius: "6px",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                          transition: "transform 0.2s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.transform = "scale(1.03)")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.transform = "scale(1)")
+                        }
+                      >
+                        Xem giỏ hàng
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

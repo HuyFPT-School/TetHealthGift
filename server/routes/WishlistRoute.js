@@ -5,6 +5,7 @@ const {
   removeFromWishlist,
   clearWishlist,
   checkInWishlist,
+  updateQuantity,
 } = require("../controllers/WishlistController");
 const { authenticateToken } = require("../middleware/auth");
 
@@ -198,5 +199,7 @@ router.delete("/clear/all", clearWishlist);
  *         description: Lỗi server
  */
 router.get("/check/:productId", checkInWishlist);
+
+router.patch("/:productId/quantity", updateQuantity);
 
 module.exports = router;
