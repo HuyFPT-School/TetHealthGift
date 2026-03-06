@@ -32,12 +32,13 @@ const api = {
           body: body ? JSON.stringify(body) : undefined,
         });
         const retryData = await retryRes.json().catch(() => ({}));
-        if (!retryRes.ok) throw new Error(retryData.message || `HTTP ${retryRes.status}`);
+        if (!retryRes.ok)
+          throw new Error(retryData.message || `HTTP ${retryRes.status}`);
         return retryData;
       }
       // Refresh thất bại → về login
       localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      // refreshToken trong cookie sẽ được backend xóa
       localStorage.removeItem("user");
       window.location.href = "/login";
       throw new Error("Phiên đăng nhập hết hạn");
@@ -66,11 +67,11 @@ const api = {
     }
   },
 
-  get:    (p)    => api.req("GET",    p),
-  post:   (p, b) => api.req("POST",   p, b),
-  put:    (p, b) => api.req("PUT",    p, b),
-  patch:  (p, b) => api.req("PATCH",  p, b),
-  delete: (p)    => api.req("DELETE", p),
+  get: (p) => api.req("GET", p),
+  post: (p, b) => api.req("POST", p, b),
+  put: (p, b) => api.req("PUT", p, b),
+  patch: (p, b) => api.req("PATCH", p, b),
+  delete: (p) => api.req("DELETE", p),
 };
 
 export default api;
