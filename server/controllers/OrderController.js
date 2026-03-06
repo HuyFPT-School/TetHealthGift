@@ -4,14 +4,19 @@ const User = require("../models/UserModel");
 
 const getAllOrders = async (req, res) => {
   try {
-    const { orderStatus, paymentStatus } = req.query;
+    const { orderStatus, paymentStatus, page, limit } = req.query;
     const filter = { orderStatus, paymentStatus };
 
-    const orders = await orderService.getAllOrders(filter);
+    const options = {
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+    };
+
+    const result = await orderService.getAllOrders(filter, options);
 
     res.status(200).json({
       message: "Lấy danh sách đơn hàng thành công",
-      data: orders,
+      data: result,
     });
   } catch (error) {
     res.status(500).json({ message: "Lỗi server: " + error.message });

@@ -47,18 +47,13 @@ export const fetchProducts = async (params = {}) => {
   const response = await api.get("/api/products", { params: query });
   const raw = response.data;
 
-  // Handle nhiều dạng response từ BE
-  const list = Array.isArray(raw)
-    ? raw
-    : Array.isArray(raw.products)
-    ? raw.products
-    : Array.isArray(raw.data)
-    ? raw.data
-    : [];
+  // Backend trả về { data: { products: [...], total: 10, page, limit, totalPages } }
+  const products = raw.data?.products || [];
+  const total = raw.data?.total || 0;
+  const currentPage = raw.data?.page || page;
+  const totalPages = raw.data?.totalPages || 1;
 
-  const total = raw.total || raw.totalProducts || list.length;
-
-  return { products: list, total };
+  return { products, total, page: currentPage, totalPages };
 };
 
 // GET /api/products/:id
@@ -77,16 +72,12 @@ export const addComment = async (productId, { rating, content }, token) => {
     content: String(content),
   });
 
-  const response = await api.post(
-    `/api/products/${productId}/comments`,
-    body,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  const response = await api.post(`/api/products/${productId}/comments`, body, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
   return response.data;
 };
 
@@ -100,7 +91,7 @@ export const updateComment = async (productId, commentId, data, token) => {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    }
+    },
   );
   return response.data;
 };
@@ -109,7 +100,7 @@ export const updateComment = async (productId, commentId, data, token) => {
 export const deleteComment = async (productId, commentId, token) => {
   const response = await api.delete(
     `/api/products/${productId}/comments/${commentId}`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } },
   );
   return response.data;
 };

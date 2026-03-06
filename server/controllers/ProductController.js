@@ -3,10 +3,20 @@ const Order = require("../models/OrderModel");
 
 const getAllProducts = async (req, res) => {
   try {
-    const products = await productService.getAllProducts();
+    const { page, limit, search, category } = req.query;
+
+    const options = {
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+      search,
+      category,
+    };
+
+    const result = await productService.getAllProducts({}, options);
+
     res.status(200).json({
       message: "Lấy danh sách sản phẩm thành công",
-      data: products,
+      data: result,
     });
   } catch (error) {
     res.status(500).json({ message: "Lỗi server: " + error.message });

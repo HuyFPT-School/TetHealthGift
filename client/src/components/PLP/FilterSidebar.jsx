@@ -3,6 +3,7 @@
 // Sidebar bộ lọc thông minh
 // ============================================================
 
+import { SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 
 function AccordionSection({ title, children, defaultOpen = true }) {
@@ -63,14 +64,6 @@ export default function FilterSidebar({
   onReset,
   activeCount,
 }) {
-  const toggleArray = (key, value) => {
-    const arr = filters[key] || [];
-    onChange(
-      key,
-      arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value],
-    );
-  };
-
   return (
     <div
       style={{
@@ -88,15 +81,15 @@ export default function FilterSidebar({
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
           marginBottom: 20,
         }}
       >
+        <SlidersHorizontal style={{ marginRight: 10 }} />
         <h3
           style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#2C1810" }}
         >
-          🔽 Bộ lọc
+          Bộ lọc
         </h3>
         {activeCount > 0 && (
           <button
@@ -200,94 +193,6 @@ export default function FilterSidebar({
               <span style={{ fontSize: 12, color: "#444" }}>{range.label}</span>
             </label>
           ))}
-        </div>
-      </AccordionSection>
-
-      {/* Herbs */}
-      <AccordionSection title="Loại thảo dược">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {options.herbs.map((herb) => {
-            const active = filters.herbs.includes(herb.value);
-            return (
-              <label
-                key={herb.value}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  onClick={() => toggleArray("herbs", herb.value)}
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 4,
-                    border: `2px solid ${active ? "#c0392b" : "#ddd"}`,
-                    background: active ? "#c0392b" : "#fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    transition: "all .2s",
-                    cursor: "pointer",
-                  }}
-                >
-                  {active && (
-                    <span style={{ color: "#fff", fontSize: 11 }}>✓</span>
-                  )}
-                </div>
-                <span style={{ fontSize: 13, color: "#444" }}>
-                  {herb.label}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      </AccordionSection>
-
-      {/* Benefits */}
-      <AccordionSection title="Công dụng sức khỏe">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {options.benefits.map((benefit) => {
-            const active = filters.benefits.includes(benefit.value);
-            return (
-              <label
-                key={benefit.value}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  onClick={() => toggleArray("benefits", benefit.value)}
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 4,
-                    border: `2px solid ${active ? "#c0392b" : "#ddd"}`,
-                    background: active ? "#c0392b" : "#fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    transition: "all .2s",
-                    cursor: "pointer",
-                  }}
-                >
-                  {active && (
-                    <span style={{ color: "#fff", fontSize: 11 }}>✓</span>
-                  )}
-                </div>
-                <span style={{ fontSize: 12, color: "#444" }}>
-                  {benefit.label}
-                </span>
-              </label>
-            );
-          })}
         </div>
       </AccordionSection>
     </div>

@@ -38,10 +38,14 @@ const OrderManagement = () => {
       if (filter) params.set("orderStatus", filter);
       const res = await axiosInstance.get(`/api/orders?${params}`);
 
-      // Backend tra { message, data: [...] }
+      // Backend returns { message, data: { orders, total, page, limit, totalPages } }
       const body = res.data;
-      let list = body?.data || body?.orders || body?.docs || [];
-      if (!Array.isArray(list)) list = list.orders || list.docs || [];
+      let list = body?.data?.orders || body?.data || body?.orders || [];
+
+      // Ensure list is an array
+      if (!Array.isArray(list)) {
+        list = list.orders || [];
+      }
 
       if (search) {
         const q = search.toLowerCase();
@@ -55,7 +59,7 @@ const OrderManagement = () => {
       }
 
       setOrders(list);
-      setTotal(body?.total || body?.totalOrders || list.length);
+      setTotal(body?.data?.total || body?.total || list.length);
     } catch (e) {
       setError(e.response?.data?.message || e.message);
     } finally {
@@ -97,30 +101,6 @@ const OrderManagement = () => {
     }
   };
 
-  const exportCSV = () => {
-    const rows = [
-      [
-        "ID",
-        "Khách hàng",
-        "SĐT",
-        "Địa chỉ",
-        "Tống tiền",
-        "Trạng thái",
-        "Thanh toán",
-        "Ngày tạo",
-      ],
-      ...orders.map((o) => [
-        o._id,
-        o.customer?.fullname || o.customerId?.fullname || "",
-        o.phone || o.customer?.phone || "",
-        o.shippingAddress || "",
-        o.totalAmount || 0,
-        ORDER_STATUS[o.orderStatus]?.label || o.orderStatus,
-        o.paymentMethod || "",
-        fmtDate(o.createdAt),
-      ]),
-    ];
-  };
 
   const pageCount = Math.max(1, Math.ceil(total / LIMIT));
   const statusCounts = orders.reduce((acc, o) => {
@@ -145,7 +125,7 @@ const OrderManagement = () => {
             setPage(1);
           }}
         >
-          Tat ca ({total})
+          Tất cả ({total})
         </button>
         {Object.entries(ORDER_STATUS).map(([k, v]) => (
           <button
@@ -247,7 +227,7 @@ const OrderManagement = () => {
                               className="link-btn"
                               onClick={() => setDetail(o)}
                             >
-                              Chi tiet
+                              Chi tiết
                             </button>
                             {st?.next && (
                               <button
@@ -266,7 +246,7 @@ const OrderManagement = () => {
                                 disabled={saving}
                                 onClick={() => cancelOrder(o._id)}
                               >
-                                Huy
+                                Huỷ
                               </button>
                             )}
                           </div>

@@ -6,12 +6,49 @@ const Product = require("../models/ProductModel");
  */
 class ProductService {
   /**
-   * Lấy tất cả sản phẩm
+   * Lấy tất cả sản phẩm với phân trang
    */
-  async getAllProducts(filters = {}) {
+  async getAllProducts(filters = {}, options = {}) {
     try {
-      const products = await Product.find(filters).populate("category");
-      return products;
+      const { page = 1, limit = 10, search, category } = options;
+
+      // Build query
+      let query = { ...filters };
+
+      // Add search filter
+      if (search) {
+        query.$or = [
+          { name: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
+          { tags: { $regex: search, $options: "i" } },
+        ];
+      }
+
+      // Add category filter
+      if (category) {
+        query.category = category;
+      }
+
+      // Calculate skip
+      const skip = (page - 1) * limit;
+
+      // Get total count
+      const total = await Product.countDocuments(query);
+
+      // Get paginated products
+      const products = await Product.find(query)
+        .populate("category")
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ createdAt: -1 });
+
+      return {
+        products,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      };
     } catch (error) {
       throw new Error(`Lỗi khi lấy danh sách sản phẩm: ${error.message}`);
     }
