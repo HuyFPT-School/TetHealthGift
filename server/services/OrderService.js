@@ -11,7 +11,10 @@ class OrderService {
    */
   async getAllOrders(filters = {}) {
     try {
-      const orders = await Order.find(filters)
+      const cleanFilter = Object.fromEntries(
+      Object.entries(filters).filter(([_, v]) => v !== undefined && v !== null && v !== "")
+    );
+      const orders = await Order.find(cleanFilter)
         .populate("customer", "fullname email phone")
         .populate("cartItems.product")
         .sort({ createdAt: -1 });

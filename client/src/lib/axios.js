@@ -6,8 +6,7 @@ const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
-  // Giữ false để không ảnh hưởng CORS — refresh dùng body thay vì cookie
-  withCredentials: false,
+  withCredentials: true, // ✅ Gửi HttpOnly cookie refreshToken tự động
 });
 
 // ── Request: gắn accessToken ──
@@ -40,19 +39,19 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Bỏ qua auto-refresh với các auth endpoints (login, register, verify...)
+    // Bo qua auto-refresh voi cac auth endpoints
     const AUTH_SKIP = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-email", "/api/auth/change-password"];
     if (AUTH_SKIP.some((path) => originalRequest.url?.includes(path))) {
       return Promise.reject(error);
     }
 
-    // Nếu chính request refresh bị 401 → logout
+    // Neu chinh request refresh bi 401 → logout
     if (originalRequest.url?.includes("/api/auth/refresh")) {
       _forceLogout();
       return Promise.reject(error);
     }
 
-    // Đang refresh → cho vào hàng đợi
+    // Dang refresh → cho vao hang doi
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         pendingQueue.push({ resolve, reject });
@@ -66,13 +65,12 @@ axiosInstance.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const storedRefreshToken = localStorage.getItem("refreshToken");
-
-      // Gửi refreshToken qua body (withCredentials: false nên không dùng cookie)
+      //  Chi gui cookie — backend doc tu req.cookies.refreshToken
+      // KHONG gui body refreshToken nua
       const res = await axios.post(
         `${API_BASE_URL}/api/auth/refresh`,
-        { refreshToken: storedRefreshToken },
-        { withCredentials: false },
+        {},
+        { withCredentials: true },
       );
 
       const newToken =
@@ -80,7 +78,7 @@ axiosInstance.interceptors.response.use(
         res.data?.token ||
         res.data?.data?.accessToken;
 
-      if (!newToken) throw new Error("Không nhận được token mới");
+      if (!newToken) throw new Error("Khong nhan duoc token moi");
 
       localStorage.setItem("accessToken", newToken);
       axiosInstance.defaults.headers.common.Authorization = `Bearer ${newToken}`;
@@ -101,8 +99,8 @@ axiosInstance.interceptors.response.use(
 
 function _forceLogout() {
   localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
+  window.dispatchEvent(new CustomEvent("auth:expired"));
   window.location.href = "/login";
 }
 
