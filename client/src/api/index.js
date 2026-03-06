@@ -51,6 +51,7 @@ const api = {
   async _tryRefresh() {
     try {
       const storedRefreshToken = localStorage.getItem("refreshToken");
+      console.log("storedRefreshToken:", storedRefreshToken);
       if (!storedRefreshToken) return false;
 
       const res = await fetch(`${BASE}/api/auth/refresh`, {

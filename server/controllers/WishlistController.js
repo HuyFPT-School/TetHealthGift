@@ -1,5 +1,6 @@
 const UserModel = require("../models/UserModel");
 const ProductModel = require("../models/ProductModel");
+const WishlistService = require("../services/WishlistService");
 
 const getWishlist = async (req, res) => {
   try {
@@ -27,34 +28,29 @@ const getWishlist = async (req, res) => {
 const addToWishlist = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { productId } = req.body;
+    const { productId, quantity  } = req.body;
 
     if (!productId) {
       return res.status(400).json({ message: "Thiếu productId" });
     }
 
-    const product = await ProductModel.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
-    }
-
-    const user = await UserModel.findByIdAndUpdate(
+    const wishlist = await WishlistService.addToWishlist(
       userId,
-      { $addToSet: { wishlist: productId } }, 
-      { new: true },
-    ).populate({
-      path: "wishlist",
-      populate: { path: "category", select: "name" },
-    });
+      productId,
+      quantity
+    );
 
     res.status(200).json({
       success: true,
-      message: "Đã thêm vào danh sách yêu thích",
-      wishlist: user.wishlist,
+      message: "Đã thêm vào wishlist",
+      wishlist
     });
+
   } catch (error) {
-    console.error("Error adding to wishlist:", error);
-    res.status(500).json({ message: "Lỗi server: " + error.message });
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 

@@ -6,6 +6,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { fetchProductById, formatPrice } from "../../services/productService";
 import ReviewSection from "./ReviewSection";
 import { useAuth } from "../../context/AuthContext";
+import { addToWishlist } from "../../api/addWishList";
 
 // Ảnh fallback dùng khi URL không load được (tránh external placeholder service)
 const FALLBACK_IMG =
@@ -178,22 +179,40 @@ export default function ProductDetailPage() {
   const discount =
     product.discountPrice && product.discountPrice < product.price
       ? Math.round(
-          ((product.price - product.discountPrice) / product.price) * 100,
-        )
+        ((product.price - product.discountPrice) / product.price) * 100,
+      )
       : 0;
 
   const avgRating = product.comments?.length
     ? (
-        product.comments.reduce((s, c) => s + c.rating, 0) /
-        product.comments.length
-      ).toFixed(1)
+      product.comments.reduce((s, c) => s + c.rating, 0) /
+      product.comments.length
+    ).toFixed(1)
     : 0;
 
   const tags = Array.isArray(product.tags) ? product.tags : [];
 
-  const handleAddToCart = () => {
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+  const handleAddToCart = async () => {
+    if (!token) {
+      alert("Vui lòng đăng nhập trước");
+      navigate("/login");
+      return;
+    }
+
+    if (!inStock) {
+      alert("Sản phẩm đã hết hàng");
+      return;
+    }
+
+    try {
+      await addToWishlist(product._id, quantity);
+
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   return (

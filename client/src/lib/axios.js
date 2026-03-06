@@ -61,7 +61,7 @@ axiosInstance.interceptors.response.use(
 
     try {
       const storedRefreshToken = localStorage.getItem("refreshToken");
-
+      console.log("storedRefreshToken:", storedRefreshToken);
       // Gửi refreshToken qua body (withCredentials: false nên không dùng cookie)
       const res = await axios.post(
         `${API_BASE_URL}/api/auth/refresh`,
