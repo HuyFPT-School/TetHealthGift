@@ -1,6 +1,3 @@
-// FILE: src/components/PDP/ProductDetailPage.jsx
-// Tích hợp API thật — dùng _id thay vì slug
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchProductById, formatPrice } from "../../services/productService";

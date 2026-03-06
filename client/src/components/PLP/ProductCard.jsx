@@ -2,6 +2,7 @@
 // Dùng data thật từ BE (imageUrl là array, price là number)
 
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatPrice, calcDiscount } from "../../services/productService";
 
 const FALLBACK_IMG =
@@ -58,7 +59,7 @@ function StarRating({ rating }) {
 export default function ProductCard({ product, index = 0, onClick }) {
   const [ref, inView] = useInView();
   const [hovered, setHovered] = useState(false);
-  const [added, setAdded] = useState(false);
+  const navigate = useNavigate();
 
   // imageUrl từ BE là array → lấy phần tử đầu, lọc placeholder
   const imageUrl = sanitizeImage(
@@ -74,19 +75,18 @@ export default function ProductCard({ product, index = 0, onClick }) {
   const discount = calcDiscount(product.price, product.discountPrice);
   const inStock = product.quantity > 0;
 
-  const handleAdd = (e) => {
+  const handleViewDetail = (e) => {
     e.stopPropagation();
     if (!inStock) return;
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
+    navigate(`/qua-tet/${product._id}`);
   };
 
   const tags = Array.isArray(product.tags) ? product.tags : [];
 
+
   return (
     <div
-      ref={ref}
-      onClick={onClick}
+      ref={ref}  
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -295,26 +295,22 @@ export default function ProductCard({ product, index = 0, onClick }) {
 
         {/* Nút mua */}
         <button
-          onClick={handleAdd}
+          onClick={handleViewDetail}
           disabled={!inStock}
           style={{
             width: "100%",
             padding: "10px",
-            background: added
-              ? "#27ae60"
-              : inStock
-                ? hovered
-                  ? "#c0392b"
-                  : "transparent"
-                : "#eee",
-            border: `1.5px solid ${added ? "#27ae60" : inStock ? "#c0392b" : "#ddd"}`,
-            color: added
-              ? "#fff"
-              : inStock
-                ? hovered
-                  ? "#fff"
-                  : "#c0392b"
-                : "#aaa",
+            background: inStock
+              ? hovered
+                ? "#c0392b"
+                : "transparent"
+              : "#eee",
+            border: `1.5px solid ${inStock ? "#c0392b" : "#ddd"}`,
+            color: inStock
+              ? hovered
+                ? "#fff"
+                : "#c0392b"
+              : "#aaa",
             borderRadius: 8,
             fontFamily: "inherit",
             fontWeight: 700,
@@ -323,7 +319,7 @@ export default function ProductCard({ product, index = 0, onClick }) {
             transition: "all .25s",
           }}
         >
-          {added ? "✓ Đã thêm!" : inStock ? "🛒 Thêm vào giỏ" : "Hết hàng"}
+          {inStock ? "🛒 Xem chi tiết" : "Hết hàng"}
         </button>
       </div>
     </div>

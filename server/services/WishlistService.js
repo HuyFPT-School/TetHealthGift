@@ -68,7 +68,7 @@ class WishlistService {
         select: "name"
       }
     });
-
+    console.log("User wishlist:", user ? user.wishlist : "User not found");
     if (!user) {
       throw new Error("Không tìm thấy người dùng");
     }

@@ -5,9 +5,9 @@ const WishlistService = require("../services/WishlistService");
 const getWishlist = async (req, res) => {
   try {
     const userId = req.user.id;
-
+    console.log("Getting wishlist for userId:", userId);
     const user = await UserModel.findById(userId).populate({
-      path: "wishlist",
+      path: "wishlist.product",
       populate: { path: "category", select: "name" },
     });
 
@@ -134,10 +134,38 @@ const checkInWishlist = async (req, res) => {
   }
 };
 
+const updateQuantity = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { productId } = req.params;
+    const { quantity } = req.body;
+
+    if (!productId) {
+      return res.status(400).json({ message: "Thiếu productId" });
+    }
+
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({ message: "Số lượng phải lớn hơn 0" });
+    }
+
+    const wishlist = await WishlistService.updateQuantity(userId, productId, quantity);
+
+    res.status(200).json({
+      success: true,
+      message: "Đã cập nhật số lượng",
+      wishlist,
+    });
+  } catch (error) {
+    console.error("Error updating quantity:", error);
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getWishlist,
   addToWishlist,
   removeFromWishlist,
   clearWishlist,
   checkInWishlist,
+  updateQuantity,
 };
