@@ -63,7 +63,6 @@ const createVNPayPayment = async (req, res) => {
       paymentUrl,
     });
   } catch (error) {
-    console.error("Create VNPAY Payment Error:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi khi tạo thanh toán VNPAY: " + error.message,
@@ -81,11 +80,13 @@ const vnpayReturn = async (req, res) => {
     // Verify chữ ký và lấy kết quả
     const verifyResult = vnpayService.verifyReturnUrl(vnpParams);
 
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+
     if (!verifyResult.isValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Chữ ký không hợp lệ",
-      });
+      // Redirect về frontend với trạng thái fail
+      return res.redirect(
+        `${clientUrl}/payment-result?status=failed&orderId=${vnpParams.vnp_TxnRef}&message=${encodeURIComponent("Chữ ký không hợp lệ")}`,
+      );
     }
 
     // Cập nhật trạng thái thanh toán - sử dụng OrderService
@@ -96,32 +97,23 @@ const vnpayReturn = async (req, res) => {
         "vnpay",
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Thanh toán thành công",
-        data: {
-          orderId: verifyResult.orderId,
-          amount: verifyResult.amount,
-          transactionNo: verifyResult.transactionNo,
-          bankCode: verifyResult.bankCode,
-          payDate: verifyResult.payDate,
-        },
-      });
+      // ✅ Redirect về frontend với trạng thái success
+      return res.redirect(
+        `${clientUrl}/payment-result?status=success&orderId=${verifyResult.orderId}&amount=${verifyResult.amount}&transactionNo=${verifyResult.transactionNo}&bankCode=${verifyResult.bankCode}&paymentMethod=vnpay`,
+      );
     } else {
       await orderService.updatePaymentStatus(verifyResult.orderId, "failed");
 
-      res.status(400).json({
-        success: false,
-        message: verifyResult.message,
-        responseCode: verifyResult.responseCode,
-      });
+      // Redirect về frontend với trạng thái failed
+      return res.redirect(
+        `${clientUrl}/payment-result?status=failed&orderId=${verifyResult.orderId}&message=${encodeURIComponent(verifyResult.message)}&responseCode=${verifyResult.responseCode}`,
+      );
     }
   } catch (error) {
-    console.error("VNPAY Return Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi xử lý callback VNPAY: " + error.message,
-    });
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    return res.redirect(
+      `${clientUrl}/payment-result?status=error&message=${encodeURIComponent("Lỗi hệ thống")}`,
+    );
   }
 };
 
@@ -187,7 +179,6 @@ const createMoMoPayment = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Create MoMo Payment Error:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi khi tạo thanh toán MoMo: " + error.message,
@@ -201,24 +192,16 @@ const createMoMoPayment = async (req, res) => {
 const momoReturn = async (req, res) => {
   try {
     const callbackData = req.query;
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 
     // Verify chữ ký
     const verifyResult = momoService.verifyCallback(callbackData);
 
     if (!verifyResult.isValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Chữ ký không hợp lệ",
-      });
-    }
-
-    // Tìm đơn hàng
-    const order = await Order.findById(verifyResult.orderId);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy đơn hàng",
-      });
+      // Redirect về frontend với trạng thái fail
+      return res.redirect(
+        `${clientUrl}/payment-result?status=failed&orderId=${callbackData.orderId}&message=${encodeURIComponent("Chữ ký không hợp lệ")}`,
+      );
     }
 
     // Cập nhật trạng thái thanh toán - sử dụng OrderService
@@ -229,31 +212,23 @@ const momoReturn = async (req, res) => {
         "momo",
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Thanh toán thành công",
-        data: {
-          orderId: verifyResult.orderId,
-          amount: verifyResult.amount,
-          transId: verifyResult.transId,
-          payType: verifyResult.payType,
-        },
-      });
+      // ✅ Redirect về frontend với trạng thái success
+      return res.redirect(
+        `${clientUrl}/payment-result?status=success&orderId=${verifyResult.orderId}&amount=${verifyResult.amount}&transactionNo=${verifyResult.transId}&paymentMethod=momo`,
+      );
     } else {
       await orderService.updatePaymentStatus(verifyResult.orderId, "failed");
 
-      res.status(400).json({
-        success: false,
-        message: verifyResult.message,
-        resultCode: verifyResult.resultCode,
-      });
+      // Redirect về frontend với trạng thái failed
+      return res.redirect(
+        `${clientUrl}/payment-result?status=failed&orderId=${verifyResult.orderId}&message=${encodeURIComponent(verifyResult.message)}&resultCode=${verifyResult.resultCode}`,
+      );
     }
   } catch (error) {
-    console.error("MoMo Return Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi xử lý callback MoMo: " + error.message,
-    });
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    return res.redirect(
+      `${clientUrl}/payment-result?status=error&message=${encodeURIComponent("Lỗi hệ thống")}`,
+    );
   }
 };
 
@@ -263,8 +238,6 @@ const momoReturn = async (req, res) => {
 const momoIPN = async (req, res) => {
   try {
     const ipnData = req.body;
-
-    console.log("MoMo IPN received:", ipnData);
 
     // Verify chữ ký
     const verifyResult = momoService.verifyIPN(ipnData);
@@ -298,7 +271,6 @@ const momoIPN = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("MoMo IPN Error:", error);
     res.status(500).json({
       resultCode: 99,
       message: "Lỗi xử lý IPN: " + error.message,
@@ -328,7 +300,6 @@ const queryMoMoTransaction = async (req, res) => {
       data: result.data,
     });
   } catch (error) {
-    console.error("Query MoMo Transaction Error:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi khi query giao dịch: " + error.message,

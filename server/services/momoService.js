@@ -42,6 +42,14 @@ class MoMoService {
       .update(rawSignature)
       .digest("hex");
 
+    // Debug logging
+    console.log("[MoMo Create Payment]");
+    console.log("Order ID:", orderIdUnique);
+    console.log("Amount:", roundedAmount);
+    console.log("Order Info:", orderInfo);
+    console.log("Raw signature:", rawSignature);
+    console.log("Signature:", signature);
+
     // Tạo request body
     const requestBody = {
       partnerCode: momoConfig.partnerCode,
@@ -155,14 +163,25 @@ class MoMoService {
       signature,
     } = callbackData;
 
-    // Tạo raw signature để verify
-    const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${extraData}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType}&partnerCode=${partnerCode}&payType=${payType}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`;
+    // ✅ FIX: MoMo return URL signature KHÔNG bao gồm payType
+    // Chỉ IPN mới có payType trong signature
+    // ⚠️ Một số field có thể undefined - dùng || ""
+    const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${extraData || ""}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType || ""}&partnerCode=${partnerCode}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`;
 
     // Tạo chữ ký để verify
     const verifySignature = crypto
       .createHmac("sha256", momoConfig.secretKey)
       .update(rawSignature)
       .digest("hex");
+
+    // Debug logging
+    console.log("[MoMo Callback Verify]");
+    console.log("Callback data:", JSON.stringify(callbackData, null, 2));
+    console.log("Raw signature string:", rawSignature);
+    console.log("Received signature:", signature);
+    console.log("Computed signature:", verifySignature);
+    console.log("Is valid:", signature === verifySignature);
+    console.log("Result code:", resultCode);
 
     // So sánh chữ ký
     const isValid = signature === verifySignature;

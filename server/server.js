@@ -23,6 +23,7 @@ database.connect();
 const allowedOrigins = [
   process.env.CLIENT_URL || "http://localhost:5173",
   "http://localhost:3000",
+  "http://localhost:5000",
 ];
 app.use(
   cors({
@@ -60,9 +61,6 @@ app.use("/api/analytics", AnalyticsRoute);
 // Server setup
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Swagger Documentation: http://localhost:${PORT}/api-docs`);
-});
+app.listen(PORT, () => {});
 
 module.exports = app;

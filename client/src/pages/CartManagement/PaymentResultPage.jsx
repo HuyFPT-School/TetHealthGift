@@ -26,47 +26,73 @@ export default function PaymentResultPage() {
 
     const verifyPayment = async () => {
       try {
-        // Xác định loại thanh toán dựa trên query params
-        const vnpResponseCode = searchParams.get("vnp_ResponseCode");
-        const partnerCode = searchParams.get("partnerCode");
+        // ✅ Backend đã redirect về với query params
+        // Đọc trực tiếp từ query params (không gọi API)
+        const statusParam = searchParams.get("status");
+        const orderId = searchParams.get("orderId");
+        const amount = searchParams.get("amount");
+        const transactionNo = searchParams.get("transactionNo");
+        const bankCode = searchParams.get("bankCode");
+        const paymentMethod = searchParams.get("paymentMethod");
+        const message = searchParams.get("message");
+        const responseCode = searchParams.get("responseCode");
 
-        if (vnpResponseCode !== null) {
-          // VNPay return - forward query params to backend
-          const queryString = searchParams.toString();
-          console.log("VNPay return query params:", queryString);
-          const res = await axiosInstance.get(
-            `/api/payment/vnpay-return?${queryString}`
-          );
-
-          if (res.data.success) {
-            setStatus("success");
-            setPaymentData(res.data.data);
-          } else {
-            setStatus("failed");
-            setErrorMessage(res.data.message || "Thanh toán thất bại");
-          }
-        } else if (partnerCode !== null) {
-          // MoMo return - forward query params to backend
-          const queryString = searchParams.toString();
-          const res = await axiosInstance.get(
-            `/api/payment/momo-return?${queryString}`
-          );
-
-          if (res.data.success) {
-            setStatus("success");
-            setPaymentData(res.data.data);
-          } else {
-            setStatus("failed");
-            setErrorMessage(res.data.message || "Thanh toán thất bại");
-          }
-        } else {
+        // Check if redirected from backend
+        if (statusParam === "success") {
+          setStatus("success");
+          setPaymentData({
+            orderId,
+            amount: amount ? parseFloat(amount) : null,
+            transactionNo,
+            bankCode,
+            paymentMethod,
+          });
+        } else if (statusParam === "failed" || statusParam === "error") {
           setStatus("failed");
-          setErrorMessage("Không có thông tin thanh toán");
+          setErrorMessage(decodeURIComponent(message || "Thanh toán thất bại"));
+        } else {
+          // Legacy: Nếu không có status param, fallback về API call cũ
+          const vnpResponseCode = searchParams.get("vnp_ResponseCode");
+          const partnerCode = searchParams.get("partnerCode");
+
+          if (vnpResponseCode !== null) {
+            // VNPay return - forward query params to backend
+            const queryString = searchParams.toString();
+            console.log("VNPay return query params:", queryString);
+            const res = await axiosInstance.get(
+              `/api/payment/vnpay-return?${queryString}`,
+            );
+
+            if (res.data.success) {
+              setStatus("success");
+              setPaymentData(res.data.data);
+            } else {
+              setStatus("failed");
+              setErrorMessage(res.data.message || "Thanh toán thất bại");
+            }
+          } else if (partnerCode !== null) {
+            // MoMo return - forward query params to backend
+            const queryString = searchParams.toString();
+            const res = await axiosInstance.get(
+              `/api/payment/momo-return?${queryString}`,
+            );
+
+            if (res.data.success) {
+              setStatus("success");
+              setPaymentData(res.data.data);
+            } else {
+              setStatus("failed");
+              setErrorMessage(res.data.message || "Thanh toán thất bại");
+            }
+          } else {
+            setStatus("failed");
+            setErrorMessage("Không có thông tin thanh toán");
+          }
         }
       } catch (error) {
         setStatus("failed");
         setErrorMessage(
-          error.response?.data?.message || "Lỗi xác thực thanh toán"
+          error.response?.data?.message || "Lỗi xác thực thanh toán",
         );
       }
     };
@@ -108,7 +134,9 @@ export default function PaymentResultPage() {
                 marginBottom: "20px",
               }}
             />
-            <h2 style={{ fontSize: "20px", color: "#333", marginBottom: "8px" }}>
+            <h2
+              style={{ fontSize: "20px", color: "#333", marginBottom: "8px" }}
+            >
               Đang xác thực thanh toán...
             </h2>
             <p style={{ fontSize: "14px", color: "#888" }}>
@@ -129,7 +157,9 @@ export default function PaymentResultPage() {
             >
               Thanh toán thành công!
             </h2>
-            <p style={{ fontSize: "14px", color: "#888", marginBottom: "20px" }}>
+            <p
+              style={{ fontSize: "14px", color: "#888", marginBottom: "20px" }}
+            >
               Cảm ơn bạn đã thanh toán. Đơn hàng đã được xác nhận.
             </p>
 
@@ -166,9 +196,7 @@ export default function PaymentResultPage() {
                     }}
                   >
                     <span style={{ color: "#888" }}>Số tiền:</span>
-                    <span
-                      style={{ fontWeight: "600", color: "#C62828" }}
-                    >
+                    <span style={{ fontWeight: "600", color: "#C62828" }}>
                       {formatPrice(paymentData.amount)}
                     </span>
                   </div>
