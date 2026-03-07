@@ -1,8 +1,18 @@
+import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { addToCart } from "../../services/cartService";
+import { toast } from "react-toastify";
 
 export default function ProductCard({ product }) {
+  const [hovered, setHovered] = useState(false);
+  const [added, setAdded] = useState(false);
+  const navigate = useNavigate();
+
   const hasDiscount =
     product.discountPrice && product.discountPrice < product.price;
+  
+  const inStock = product.quantity > 0;
 
   const formatPrice = (price) => {
     if (typeof price === "number") return price.toLocaleString("vi-VN") + " đ";
@@ -23,8 +33,31 @@ export default function ProductCard({ product }) {
 
   const tags = getTags();
 
+  const handleViewDetail = () => {
+    navigate(`/qua-tet/${product._id}`);
+  };
+
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
+
+    if (!inStock) {
+      toast.error("Sản phẩm đã hết hàng");
+      return;
+    }
+
+    try {
+      addToCart(product, 1);
+      setAdded(true);
+      toast.success("Đã thêm vào giỏ hàng thành công!");
+      setTimeout(() => setAdded(false), 2000);
+    } catch (error) {
+      toast.error("Không thể thêm vào giỏ hàng");
+    }
+  };
+
   return (
     <div
+      onClick={handleViewDetail}
       style={{
         background: "#fff",
         borderRadius: "12px",
@@ -37,10 +70,12 @@ export default function ProductCard({ product }) {
         flexDirection: "column",
       }}
       onMouseEnter={(e) => {
+        setHovered(true);
         e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.15)";
         e.currentTarget.style.transform = "translateY(-4px)";
       }}
       onMouseLeave={(e) => {
+        setHovered(false);
         e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
         e.currentTarget.style.transform = "translateY(0)";
       }}
@@ -177,27 +212,38 @@ export default function ProductCard({ product }) {
 
         {/* Buy button */}
         <button
+          onClick={handleAddToCart}
+          disabled={!inStock || added}
           style={{
             width: "100%",
-            padding: "12px",
-            background: "linear-gradient(135deg, #e67e22, #c0392b)",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            fontWeight: "700",
-            fontSize: "14px",
-            cursor: "pointer",
+            padding: "10px",
+            background: inStock
+              ? hovered
+                ? "#c0392b"
+                : "transparent"
+              : "#eee",
+            border: `1.5px solid ${inStock ? "#c0392b" : "#ddd"}`,
+            color: inStock ? (hovered ? "#fff" : "#c0392b") : "#aaa",
+            borderRadius: 8,
+            fontFamily: "inherit",
+            fontWeight: 700,
+            fontSize: 12,
+            cursor: inStock ? "pointer" : "not-allowed",
+            transition: "all .25s",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "8px",
-            transition: "opacity 0.2s",
+            gap: 8,
             marginTop: "auto",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
-          <span><ShoppingCart size={19} /></span> MUA HÀNG
+          <ShoppingCart
+            size={16}
+            color={inStock ? (hovered ? "#fff" : "#c0392b") : "#aaa"}
+          />
+          <span style={{ lineHeight: 1 }}>
+            {!inStock ? "Hết hàng" : added ? "✓ Đã thêm" : "Thêm vào giỏ"}
+          </span>
         </button>
       </div>
     </div>

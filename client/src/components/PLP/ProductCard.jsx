@@ -5,8 +5,8 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatPrice, calcDiscount } from "../../services/productService";
 import { ShoppingCart } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
-import { addToWishlist } from "../../api/addWishList";
+import { addToCart } from "../../services/cartService";
+import { toast } from "react-toastify";
 
 const FALLBACK_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='200' viewBox='0 0 220 200'%3E%3Crect width='220' height='200' fill='%23f5e8e4'/%3E%3Ctext x='110' y='95' text-anchor='middle' font-size='32' fill='%23d4a89a'%3E%F0%9F%8E%81%3C/text%3E%3Ctext x='110' y='125' text-anchor='middle' font-size='12' fill='%23c0a09a'%3EKh%C3%B4ng c%C3%B3 %E1%BA%A3nh%3C/text%3E%3C/svg%3E";
@@ -64,7 +64,6 @@ export default function ProductCard({ product, index = 0 }) {
   const [hovered, setHovered] = useState(false);
   const [added, setAdded] = useState(false);
   const navigate = useNavigate();
-  const { token } = useAuth();
 
   // imageUrl từ BE là array → lấy phần tử đầu, lọc placeholder
   const imageUrl = sanitizeImage(
@@ -84,26 +83,21 @@ export default function ProductCard({ product, index = 0 }) {
     navigate(`/qua-tet/${product._id}`);
   };
 
-  const handleAddToCart = async (e) => {
+  const handleAddToCart = (e) => {
     e.stopPropagation();
 
-    if (!token) {
-      alert("Vui lòng đăng nhập trước");
-      navigate("/login");
-      return;
-    }
-
     if (!inStock) {
-      alert("Sản phẩm đã hết hàng");
+      toast.error("Sản phẩm đã hết hàng");
       return;
     }
 
     try {
-      await addToWishlist(product._id, 1);
+      addToCart(product, 1);
       setAdded(true);
+      toast.success("Đã thêm vào giỏ hàng thành công!");
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể thêm vào giỏ hàng");
+      toast.error("Không thể thêm vào giỏ hàng");
     }
   };
 

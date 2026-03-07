@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchProductById, formatPrice } from "../../services/productService";
 import ReviewSection from "./ReviewSection";
+import { addToCart } from "../../services/cartService";
 import { useAuth } from "../../context/AuthContext";
-import { addToWishlist } from "../../api/addWishList";
+import { toast } from "react-toastify";
 
 // Ảnh fallback dùng khi URL không load được (tránh external placeholder service)
 const FALLBACK_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f5e8e4'/%3E%3Ctext x='200' y='190' text-anchor='middle' font-size='64' fill='%23d4a89a'%3E%F0%9F%8E%81%3C/text%3E%3Ctext x='200' y='240' text-anchor='middle' font-size='18' fill='%23c0a09a'%3EKh%C3%B4ng c%C3%B3 %E1%BA%A3nh%3C/text%3E%3C/svg%3E";
 
-// Lọc URL placeholder không hợp lệ từ seed data
 const sanitizeImage = (url) => {
   if (!url || typeof url !== "string") return null;
   if (url.includes("via.placeholder.com") || url.includes("placeholder.com"))
@@ -109,7 +109,6 @@ export default function ProductDetailPage() {
         setLoading(true);
         setError(null);
         const data = await fetchProductById(id);
-        // BE có thể trả về { product: {...} } hoặc thẳng object
         setProduct(data.product || data);
         setActiveImage(0);
         setQuantity(1);
@@ -124,7 +123,6 @@ export default function ProductDetailPage() {
     if (id) load();
   }, [id]);
 
-  // Loading state
   if (loading)
     return (
       <div
@@ -141,7 +139,6 @@ export default function ProductDetailPage() {
       </div>
     );
 
-  // Error / not found
   if (error || !product)
     return (
       <div style={{ textAlign: "center", padding: "80px 40px", color: "#aaa" }}>
@@ -166,7 +163,6 @@ export default function ProductDetailPage() {
       </div>
     );
 
-  // Dữ liệu thật từ BE
   const images = (
     Array.isArray(product.imageUrl) ? product.imageUrl : [product.imageUrl]
   )
@@ -189,25 +185,20 @@ export default function ProductDetailPage() {
 
   const tags = Array.isArray(product.tags) ? product.tags : [];
 
-  const handleAddToCart = async () => {
-    if (!token) {
-      alert("Vui lòng đăng nhập trước");
-      navigate("/login");
-      return;
-    }
-
+  const handleAddToCart = () => {
     if (!inStock) {
-      alert("Sản phẩm đã hết hàng");
+      toast.error("Sản phẩm đã hết hàng");
       return;
     }
 
     try {
-      await addToWishlist(product._id, quantity);
-
+      addToCart(product, quantity);
+      
       setAdded(true);
+      toast.success("Đã thêm vào giỏ hàng thành công!");
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
-      alert(error.message);
+      toast.error("Không thể thêm vào giỏ hàng");
     }
   };
 

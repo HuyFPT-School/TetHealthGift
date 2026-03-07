@@ -1,30 +1,34 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getWishlist, updateWishlistQuantity } from "../../api/addWishList";
+import {
+  getCart,
+  updateCartQuantity,
+  removeFromCart,
+} from "../../services/cartService";
 import { formatPrice } from "../../services/productService";
-import { useAuth } from "../../context/AuthContext";
 import { Trash2, Plus, Minus } from "lucide-react";
-import { removeFromWishlist } from "../../api/addWishList";
+import { toast } from "react-toastify";
+
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
     fetchCart();
-  }, [user]);
 
-  const fetchCart = async () => {
+    // Nghe event để cập nhật khi xoá khỏi localStorage ở tab khác (optional)
+    const handleCartUpdate = () => fetchCart();
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
+  }, []);
+
+  const fetchCart = () => {
     try {
       setLoading(true);
-      const data = await getWishlist();
-      setCartItems(data.wishlist || []);
+      const data = getCart();
+      setCartItems(data || []);
     } catch (error) {
       console.error("Failed to fetch cart:", error);
     } finally {
@@ -36,7 +40,7 @@ export default function CartPage() {
     setSelectedIds((prev) =>
       prev.includes(productId)
         ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
+        : [...prev, productId],
     );
   };
 
@@ -48,42 +52,37 @@ export default function CartPage() {
     }
   };
 
-  const handleQuantityChange = async (productId, newQuantity) => {
+  const handleQuantityChange = (productId, newQuantity) => {
     const qty = Math.max(1, parseInt(newQuantity) || 1);
     try {
-      await updateWishlistQuantity(productId, qty);
+      updateCartQuantity(productId, qty);
       setCartItems((prev) =>
         prev.map((item) =>
-          item.product?._id === productId
-            ? { ...item, quantity: qty }
-            : item
-        )
+          item.product?._id === productId ? { ...item, quantity: qty } : item,
+        ),
       );
     } catch (error) {
       console.error("Failed to update quantity:", error);
     }
   };
 
-  const removeItem = async (productId) => {
+  const removeItem = (productId) => {
     try {
-      const data = await removeFromWishlist(productId);
+      removeFromCart(productId);
 
       setCartItems((prev) =>
-        prev.filter((item) => item.product?._id !== productId)
+        prev.filter((item) => item.product?._id !== productId),
       );
 
       setSelectedIds((prev) => prev.filter((id) => id !== productId));
 
-      alert(data.message);
+      toast.success("Đã xóa khỏi giỏ hàng");
     } catch (error) {
-      alert(
-        "Xóa sản phẩm thất bại: " +
-        (error.response?.data?.message || error.message)
-      );
+      toast.error("Xóa sản phẩm thất bại");
     }
   };
   const selectedItems = cartItems.filter((item) =>
-    selectedIds.includes(item.product?._id)
+    selectedIds.includes(item.product?._id),
   );
 
   const totalAmount = selectedItems.reduce((sum, item) => {
@@ -93,7 +92,7 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (selectedItems.length === 0) {
-      alert("Vui lòng chọn ít nhất một sản phẩm để thanh toán");
+      toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán");
       return;
     }
 
@@ -227,7 +226,13 @@ export default function CartPage() {
                     >
                       {product.name}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
                       <span
                         style={{
                           color: "#C62828",
@@ -237,17 +242,18 @@ export default function CartPage() {
                       >
                         {formatPrice(price)}
                       </span>
-                      {product.discountPrice && product.discountPrice < product.price && (
-                        <span
-                          style={{
-                            color: "#999",
-                            textDecoration: "line-through",
-                            fontSize: "13px",
-                          }}
-                        >
-                          {formatPrice(product.price)}
-                        </span>
-                      )}
+                      {product.discountPrice &&
+                        product.discountPrice < product.price && (
+                          <span
+                            style={{
+                              color: "#999",
+                              textDecoration: "line-through",
+                              fontSize: "13px",
+                            }}
+                          >
+                            {formatPrice(product.price)}
+                          </span>
+                        )}
                     </div>
                     <div
                       style={{
@@ -257,9 +263,16 @@ export default function CartPage() {
                         marginTop: "6px",
                       }}
                     >
-                      <span style={{ color: "#888", fontSize: "13px" }}>Số lượng:</span>
+                      <span style={{ color: "#888", fontSize: "13px" }}>
+                        Số lượng:
+                      </span>
                       <button
-                        onClick={() => handleQuantityChange(product._id, (item.quantity || 1) - 1)}
+                        onClick={() =>
+                          handleQuantityChange(
+                            product._id,
+                            (item.quantity || 1) - 1,
+                          )
+                        }
                         disabled={(item.quantity || 1) <= 1}
                         style={{
                           width: "28px",
@@ -269,8 +282,12 @@ export default function CartPage() {
                           justifyContent: "center",
                           border: "1px solid #ddd",
                           borderRadius: "6px",
-                          background: (item.quantity || 1) <= 1 ? "#f5f5f5" : "#fff",
-                          cursor: (item.quantity || 1) <= 1 ? "not-allowed" : "pointer",
+                          background:
+                            (item.quantity || 1) <= 1 ? "#f5f5f5" : "#fff",
+                          cursor:
+                            (item.quantity || 1) <= 1
+                              ? "not-allowed"
+                              : "pointer",
                           color: (item.quantity || 1) <= 1 ? "#ccc" : "#333",
                         }}
                       >
@@ -280,7 +297,9 @@ export default function CartPage() {
                         type="number"
                         min="1"
                         value={item.quantity || 1}
-                        onChange={(e) => handleQuantityChange(product._id, e.target.value)}
+                        onChange={(e) =>
+                          handleQuantityChange(product._id, e.target.value)
+                        }
                         style={{
                           width: "48px",
                           height: "28px",
@@ -293,7 +312,12 @@ export default function CartPage() {
                         }}
                       />
                       <button
-                        onClick={() => handleQuantityChange(product._id, (item.quantity || 1) + 1)}
+                        onClick={() =>
+                          handleQuantityChange(
+                            product._id,
+                            (item.quantity || 1) + 1,
+                          )
+                        }
                         style={{
                           width: "28px",
                           height: "28px",
@@ -395,7 +419,7 @@ export default function CartPage() {
               <span>
                 {selectedItems.reduce(
                   (sum, item) => sum + (item.quantity || 1),
-                  0
+                  0,
                 )}
               </span>
             </div>
@@ -411,7 +435,9 @@ export default function CartPage() {
               }}
             >
               <span style={{ color: "#333" }}>Tổng tiền:</span>
-              <span style={{ color: "#C62828" }}>{formatPrice(totalAmount)}</span>
+              <span style={{ color: "#C62828" }}>
+                {formatPrice(totalAmount)}
+              </span>
             </div>
             <button
               onClick={handleCheckout}
