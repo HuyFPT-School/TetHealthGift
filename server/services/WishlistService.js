@@ -7,7 +7,6 @@ const Product = require("../models/ProductModel");
  * Xử lý business logic liên quan đến wishlist
  */
 class WishlistService {
-
   /**
    * Thêm sản phẩm vào wishlist
    */
@@ -23,10 +22,12 @@ class WishlistService {
     }
 
     const productIdStr = productId.toString();
-    const existingItem = user.wishlist.find(item => {
+    const existingItem = user.wishlist.find((item) => {
       if (!item.product) return false;
       const itemProd = item.product;
-      const itemProdId = itemProd._id ? itemProd._id.toString() : itemProd.toString();
+      const itemProdId = itemProd._id
+        ? itemProd._id.toString()
+        : itemProd.toString();
       return itemProdId === productIdStr;
     });
 
@@ -35,15 +36,17 @@ class WishlistService {
     } else {
       user.wishlist.push({
         product: productId,
-        quantity
+        quantity,
       });
     }
 
     // Sanitize wishlist: remove any items missing `product` or with invalid ids
-    user.wishlist = user.wishlist.filter(item => {
+    user.wishlist = user.wishlist.filter((item) => {
       if (!item || !item.product) return false;
       const itemProd = item.product;
-      const itemProdId = itemProd._id ? itemProd._id.toString() : itemProd.toString();
+      const itemProdId = itemProd._id
+        ? itemProd._id.toString()
+        : itemProd.toString();
       return mongoose.Types.ObjectId.isValid(itemProdId);
     });
 
@@ -53,8 +56,8 @@ class WishlistService {
       path: "wishlist.product",
       populate: {
         path: "category",
-        select: "name"
-      }
+        select: "name",
+      },
     });
 
     return user.wishlist;
@@ -65,10 +68,9 @@ class WishlistService {
       path: "wishlist.product",
       populate: {
         path: "category",
-        select: "name"
-      }
+        select: "name",
+      },
     });
-    console.log("User wishlist:", user ? user.wishlist : "User not found");
     if (!user) {
       throw new Error("Không tìm thấy người dùng");
     }
@@ -81,16 +83,16 @@ class WishlistService {
       userId,
       {
         $pull: {
-          wishlist: { product: productId }
-        }
+          wishlist: { product: productId },
+        },
       },
-      { new: true }
+      { new: true },
     ).populate({
       path: "wishlist.product",
       populate: {
         path: "category",
-        select: "name"
-      }
+        select: "name",
+      },
     });
 
     if (!user) {
@@ -108,15 +110,15 @@ class WishlistService {
     const user = await User.findOneAndUpdate(
       { _id: userId, "wishlist.product": productId },
       {
-        $set: { "wishlist.$.quantity": quantity }
+        $set: { "wishlist.$.quantity": quantity },
       },
-      { new: true }
+      { new: true },
     ).populate({
       path: "wishlist.product",
       populate: {
         path: "category",
-        select: "name"
-      }
+        select: "name",
+      },
     });
 
     if (!user) {
@@ -125,7 +127,6 @@ class WishlistService {
 
     return user.wishlist;
   }
-
 
   /**
    * Xóa toàn bộ wishlist
@@ -159,10 +160,12 @@ class WishlistService {
       }
 
       const productIdStr = productId.toString();
-      return user.wishlist.some(item => {
+      return user.wishlist.some((item) => {
         if (!item.product) return false;
         const itemProd = item.product;
-        const itemProdId = itemProd._id ? itemProd._id.toString() : itemProd.toString();
+        const itemProdId = itemProd._id
+          ? itemProd._id.toString()
+          : itemProd.toString();
         return itemProdId === productIdStr;
       });
     } catch (error) {
