@@ -257,7 +257,7 @@ const OrderManagement = () => {
                   {orders.length === 0 && (
                     <tr>
                       <td colSpan={7} className="empty-row">
-                        <div className="empty-icon">📭</div>
+                        <div className="empty-icon"></div>
                         Không có đơn hàng nào
                       </td>
                     </tr>
@@ -304,11 +304,11 @@ const OrderManagement = () => {
                 "Khach hang",
                 detail.customer?.fullname || detail.customerId?.fullname || "—",
               ],
-              ["SDT", detail.phone || detail.customer?.phone || "—"],
-              ["Dia chi", detail.shippingAddress || "—"],
-              ["Thanh toan", detail.paymentMethod || "—"],
-              ["TT thanh toan", detail.paymentStatus || "—"],
-              ["Ngay dat", fmtDate(detail.createdAt)],
+              ["SĐT", detail.phone || detail.customer?.phone || "—"],
+              ["Địa chỉ", detail.shippingAddress || "—"],
+              ["Thanh toán", detail.paymentMethod || "—"],
+              ["TT Thanh toán", detail.paymentStatus || "—"],
+              ["Ngày đặt", fmtDate(detail.createdAt)],
             ].map(([k, v]) => (
               <div key={k} className="detail-item">
                 <div className="detail-key">{k}</div>
@@ -391,7 +391,7 @@ const OrderManagement = () => {
                 {saving ? (
                   <Spinner size={14} />
                 ) : (
-                  `-> ${ORDER_STATUS[ORDER_STATUS[detail.orderStatus].next]?.label}`
+                  `${ORDER_STATUS[ORDER_STATUS[detail.orderStatus].next]?.label}`
                 )}
               </button>
             )}
@@ -406,7 +406,7 @@ const OrderManagement = () => {
               </button>
             )}
             <button className="btn-outline" onClick={() => setDetail(null)}>
-              Đồng
+              Đóng
             </button>
           </div>
         </Modal>

@@ -89,6 +89,8 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="dashboard-page fade-in">
+
+      {/* KPI Grid */}
       <div className="kpi-grid">
         <KpiCard
           label="Đơn Hàng Hôm Nay"
@@ -122,6 +124,7 @@ const AnalyticsDashboard = () => {
         />
       </div>
 
+      {/* Charts Row */}
       <div className="charts-row">
         <div className="card chart-card">
           <h3 className="card-title">Biểu đồ doanh thu 7 ngày</h3>
