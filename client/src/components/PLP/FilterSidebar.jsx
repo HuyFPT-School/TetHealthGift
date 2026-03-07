@@ -101,6 +101,7 @@ export default function FilterSidebar({
               fontSize: 12,
               cursor: "pointer",
               fontWeight: 600,
+              marginLeft: 10,
               textDecoration: "underline",
             }}
           >
