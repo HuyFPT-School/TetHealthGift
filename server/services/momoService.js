@@ -23,12 +23,18 @@ class MoMoService {
       throw new Error("Thiếu thông tin bắt buộc để tạo thanh toán");
     }
 
+    // MoMo yêu cầu amount phải là số nguyên dương
+    const roundedAmount = Math.round(Number(amount));
+    if (isNaN(roundedAmount) || roundedAmount <= 0) {
+      throw new Error("Số tiền thanh toán không hợp lệ");
+    }
+
     // Tạo requestId và orderId unique
     const requestId = `${orderId}_${Date.now()}`;
     const orderIdUnique = orderId;
 
     // Tạo raw signature theo đúng format của MoMo
-    const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${momoConfig.ipnUrl}&orderId=${orderIdUnique}&orderInfo=${orderInfo}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${momoConfig.redirectUrl}&requestId=${requestId}&requestType=${momoConfig.requestType}`;
+    const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${roundedAmount}&extraData=${extraData}&ipnUrl=${momoConfig.ipnUrl}&orderId=${orderIdUnique}&orderInfo=${orderInfo}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${momoConfig.redirectUrl}&requestId=${requestId}&requestType=${momoConfig.requestType}`;
 
     // Tạo chữ ký HMAC SHA256
     const signature = crypto
@@ -42,7 +48,7 @@ class MoMoService {
       partnerName: "TetHealthGift",
       storeId: "TetHealthGiftStore",
       requestId: requestId,
-      amount: amount,
+      amount: roundedAmount,
       orderId: orderIdUnique,
       orderInfo: orderInfo,
       redirectUrl: momoConfig.redirectUrl,
