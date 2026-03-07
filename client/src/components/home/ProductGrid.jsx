@@ -49,7 +49,7 @@ export default function ProductGrid() {
   });
 
   return (
-    <div style={{ background: "#fff", padding: "32px 60px 40px" }}>
+    <div style={{ background: "#fff", padding: "32px 260px 40px" }}>
       <h2
         style={{
           fontSize: "22px",

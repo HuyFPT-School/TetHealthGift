@@ -1,18 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useAccountProfile } from "../Account/hooks/useAccountProfile";
 import { formatPrice } from "../../services/productService";
 import axiosInstance from "../../lib/axios";
-import { removeFromWishlist } from "../../api/addWishList";
+import { removeFromCart } from "../../services/cartService";
 import { ArrowLeft } from "lucide-react";
+import { toast } from "react-toastify";
 
 export default function PayMoneyPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { profile } = useAccountProfile();
 
-  const selectedItems = location.state?.selectedItems || [];
-  const totalAmount = location.state?.totalAmount || 0;
+  const selectedItems = useMemo(
+    () => location.state?.selectedItems || [],
+    [location.state],
+  );
+  const totalAmount = useMemo(
+    () => location.state?.totalAmount || 0,
+    [location.state],
+  );
 
   const [shippingAddress, setShippingAddress] = useState("");
   const [phone, setPhone] = useState("");
@@ -29,18 +38,36 @@ export default function PayMoneyPage() {
       navigate("/cart");
       return;
     }
-    // Pre-fill from user profile
-    setShippingAddress(user.address || "");
-    setPhone(user.phone || "");
-  }, [user]);
+  }, [user, navigate, selectedItems]);
+
+  useEffect(() => {
+    // Ưu tiên dữ liệu profile mới nhất từ API, nếu chưa có thì dùng từ AuthContext
+    const source = profile || user;
+    if (source) {
+      setShippingAddress(source.address || "");
+
+      let phoneValue = source.phone || "";
+      if (phoneValue && typeof phoneValue === "number") {
+        phoneValue = String(phoneValue);
+      }
+      if (
+        phoneValue &&
+        phoneValue.length === 9 &&
+        !phoneValue.startsWith("0")
+      ) {
+        phoneValue = "0" + phoneValue;
+      }
+      setPhone(phoneValue);
+    }
+  }, [profile, user]);
 
   const handleSubmitOrder = async () => {
     if (!shippingAddress.trim()) {
-      alert("Vui lòng nhập địa chỉ giao hàng");
+      toast.error("Vui lòng nhập địa chỉ giao hàng");
       return;
     }
     if (!phone.trim()) {
-      alert("Vui lòng nhập số điện thoại");
+      toast.error("Vui lòng nhập số điện thoại");
       return;
     }
 
@@ -51,7 +78,9 @@ export default function PayMoneyPage() {
 
     try {
       setOrdering(true);
-      await axiosInstance.post("/api/orders", {
+
+      // 1. Tạo đơn hàng
+      const orderRes = await axiosInstance.post("/api/orders", {
         cartItems: cartData,
         shippingAddress: shippingAddress.trim(),
         phone: phone.trim(),
@@ -59,17 +88,61 @@ export default function PayMoneyPage() {
         paymentMethod,
       });
 
-      // Remove ordered items from wishlist
+      const newOrder = orderRes.data.data;
+      const orderId = newOrder._id;
+
+      // 2. Xóa các sản phẩm đã đặt khỏi giỏ hàng local
       for (const item of selectedItems) {
-        await removeFromWishlist(item.product?._id);
+        removeFromCart(item.product?._id);
       }
 
-      alert("Đặt hàng thành công!");
-      navigate("/cart");
+      // 3. Xử lý thanh toán theo phương thức
+      if (paymentMethod === "vnpay") {
+        const paymentRes = await axiosInstance.post(
+          "/api/payment/vnpay/create",
+          {
+            orderId,
+            orderInfo: `Thanh toán đơn hàng #${orderId}`,
+          },
+        );
+
+        if (paymentRes.data.success && paymentRes.data.paymentUrl) {
+          window.location.href = paymentRes.data.paymentUrl;
+          return;
+        } else {
+          toast.error("Đơn hàng đã được tạo. Vui lòng thanh toán lại sau");
+          navigate("/cart");
+        }
+      } else if (paymentMethod === "momo") {
+        const paymentRes = await axiosInstance.post(
+          "/api/payment/momo/create",
+          {
+            orderId,
+            orderInfo: `Thanh toán đơn hàng #${orderId}`,
+          },
+        );
+
+        if (paymentRes.data.success && paymentRes.data.payUrl) {
+          window.location.href = paymentRes.data.payUrl;
+          return;
+        } else {
+          toast.error("Đơn hàng đã được tạo. Vui lòng thanh toán lại sau");
+          navigate("/cart");
+        }
+      } else {
+        // COD - thanh toán khi nhận hàng
+        navigate("/payment-result", {
+          state: {
+            method: "cod",
+            orderId: orderId,
+            amount: totalAmount,
+          },
+        });
+      }
     } catch (error) {
-      alert(
+      toast.error(
         "Đặt hàng thất bại: " +
-          (error.response?.data?.message || error.message)
+          (error.response?.data?.message || error.message),
       );
     } finally {
       setOrdering(false);
@@ -291,7 +364,9 @@ export default function PayMoneyPage() {
               Phương thức thanh toán
             </h3>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            >
               {paymentMethods.map((method) => (
                 <label
                   key={method.value}
@@ -330,7 +405,13 @@ export default function PayMoneyPage() {
                     >
                       {method.label}
                     </div>
-                    <div style={{ fontSize: "12px", color: "#888", marginTop: "2px" }}>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#888",
+                        marginTop: "2px",
+                      }}
+                    >
                       {method.desc}
                     </div>
                   </div>
@@ -395,7 +476,13 @@ export default function PayMoneyPage() {
                     >
                       {product.name}
                     </div>
-                    <div style={{ fontSize: "13px", color: "#888", marginTop: "4px" }}>
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: "#888",
+                        marginTop: "4px",
+                      }}
+                    >
                       {formatPrice(price)} x {item.quantity || 1}
                     </div>
                   </div>
@@ -464,7 +551,7 @@ export default function PayMoneyPage() {
             <span>
               {selectedItems.reduce(
                 (sum, item) => sum + (item.quantity || 1),
-                0
+                0,
               )}
             </span>
           </div>

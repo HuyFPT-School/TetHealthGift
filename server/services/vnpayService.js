@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const querystring = require("querystring");
+const qs = require("qs");
 const vnpayConfig = require("../config/vnpay");
 
 class VNPayService {
@@ -23,11 +23,23 @@ class VNPayService {
       throw new Error("Thiếu thông tin bắt buộc để tạo thanh toán");
     }
 
+    // Đảm bảo amount là số nguyên
+    const roundedAmount = Math.round(Number(amount));
+    if (isNaN(roundedAmount) || roundedAmount <= 0) {
+      throw new Error("Số tiền thanh toán không hợp lệ");
+    }
+
     // Tạo thời gian tạo yêu cầu (format: yyyyMMddHHmmss)
     const createDate = this.formatDate(new Date());
 
     // Thời gian hết hạn (15 phút sau)
     const expireDate = this.formatDate(new Date(Date.now() + 15 * 60 * 1000));
+
+    // Loại bỏ ký tự đặc biệt và dấu tiếng Việt khỏi orderInfo
+    // (VNPay yêu cầu tiếng Việt không dấu, không chứa #, &, =, spaces ...)
+    const safeOrderInfo = this.removeDiacritics(orderInfo)
+      .replace(/[#&=?%]/g, "")
+      .replace(/\s+/g, "-"); // Thay dấu cách thành dấu gạch ngang
 
     // Tạo object chứa parameters
     let vnp_Params = {
@@ -37,9 +49,9 @@ class VNPayService {
       vnp_Locale: locale || vnpayConfig.vnp_Locale,
       vnp_CurrCode: vnpayConfig.vnp_CurrCode,
       vnp_TxnRef: orderId,
-      vnp_OrderInfo: orderInfo,
+      vnp_OrderInfo: safeOrderInfo,
       vnp_OrderType: orderType,
-      vnp_Amount: amount * 100, // VNPAY yêu cầu amount * 100
+      vnp_Amount: roundedAmount * 100, // VNPAY yêu cầu amount * 100
       vnp_ReturnUrl: vnpayConfig.vnp_ReturnUrl,
       vnp_IpAddr: ipAddr,
       vnp_CreateDate: createDate,
@@ -49,19 +61,17 @@ class VNPayService {
     // Sắp xếp params theo thứ tự alphabet (yêu cầu của VNPAY)
     vnp_Params = this.sortObject(vnp_Params);
 
-    // Tạo chuỗi query
-    const signData = querystring.stringify(vnp_Params, { encode: false });
+    // Tạo chuỗi query để ký (không encode)
+    const signData = qs.stringify(vnp_Params, { encode: false });
 
     // Tạo secure hash
     const hmac = crypto.createHmac("sha512", vnpayConfig.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
     vnp_Params["vnp_SecureHash"] = signed;
 
-    // Tạo URL thanh toán
+    // Tạo URL thanh toán (không encode - theo official VNPay sample)
     const paymentUrl =
-      vnpayConfig.vnp_Url +
-      "?" +
-      querystring.stringify(vnp_Params, { encode: false });
+      vnpayConfig.vnp_Url + "?" + qs.stringify(vnp_Params, { encode: false });
 
     return paymentUrl;
   }
@@ -82,8 +92,8 @@ class VNPayService {
     // Sắp xếp params
     vnp_Params = this.sortObject(vnp_Params);
 
-    // Tạo chuỗi để verify
-    const signData = querystring.stringify(vnp_Params, { encode: false });
+    // Tạo chuỗi để verify (không encode)
+    const signData = qs.stringify(vnp_Params, { encode: false });
 
     // Tạo hash để verify
     const hmac = crypto.createHmac("sha512", vnpayConfig.vnp_HashSecret);
@@ -136,6 +146,17 @@ class VNPayService {
   }
 
   /**
+   * Loại bỏ dấu tiếng Việt (VNPay yêu cầu không dấu)
+   */
+  removeDiacritics(str) {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D");
+  }
+
+  /**
    * Format date theo định dạng VNPAY (yyyyMMddHHmmss)
    * @param {Date} date - Date object
    * @returns {string} Formatted date string
@@ -152,16 +173,23 @@ class VNPayService {
   }
 
   /**
-   * Sắp xếp object theo key (alphabet)
+   * Sắp xếp object theo key (alphabet) VÀ ENCODE (theo VNPay spec)
    * @param {Object} obj - Object cần sắp xếp
-   * @returns {Object} Object đã sắp xếp
+   * @returns {Object} Object đã sắp xếp và encode
    */
   sortObject(obj) {
-    const sorted = {};
-    const keys = Object.keys(obj).sort();
-    keys.forEach((key) => {
-      sorted[key] = obj[key];
-    });
+    let sorted = {};
+    let str = [];
+    let key;
+    for (key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        str.push(encodeURIComponent(key));
+      }
+    }
+    str.sort();
+    for (key = 0; key < str.length; key++) {
+      sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    }
     return sorted;
   }
 }

@@ -165,11 +165,26 @@ const updatePaymentStatus = async (req, res) => {
 const cancelOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await orderService.cancelOrder(id);
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+
+    // Get order to check ownership
+    const order = await orderService.getOrderById(id);
+
+    // Check authorization: Admin/StaffManager can cancel any order, Customer can only cancel their own
+    if (userRole !== "Admin" && userRole !== "StaffManager") {
+      if (order.customer._id.toString() !== userId) {
+        return res.status(403).json({
+          message: "Bạn không có quyền hủy đơn hàng này",
+        });
+      }
+    }
+
+    const cancelledOrder = await orderService.cancelOrder(id);
 
     res.status(200).json({
       message: "Hủy đơn hàng thành công",
-      data: order,
+      data: cancelledOrder,
     });
   } catch (error) {
     if (

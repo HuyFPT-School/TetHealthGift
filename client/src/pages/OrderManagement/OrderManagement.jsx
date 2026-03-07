@@ -101,7 +101,6 @@ const OrderManagement = () => {
     }
   };
 
-
   const pageCount = Math.max(1, Math.ceil(total / LIMIT));
   const statusCounts = orders.reduce((acc, o) => {
     acc[o.orderStatus] = (acc[o.orderStatus] || 0) + 1;
@@ -327,15 +326,43 @@ const OrderManagement = () => {
                     key={i}
                     className={`item-row${i % 2 === 0 ? " alt" : ""}`}
                   >
-                    <span className="item-name">
-                      {item.name ||
-                        item.product?.name ||
-                        item.productId?.name ||
-                        `SP ${i + 1}`}
-                      {item.quantity && (
-                        <span className="item-qty"> x {item.quantity}</span>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        flex: 1,
+                      }}
+                    >
+                      {(item.imageUrl ||
+                        item.product?.imageUrl ||
+                        item.product?.images?.[0]) && (
+                        <img
+                          src={
+                            item.imageUrl ||
+                            item.product?.imageUrl ||
+                            item.product?.images?.[0]
+                          }
+                          alt={item.name}
+                          style={{
+                            width: "50px",
+                            height: "50px",
+                            borderRadius: "8px",
+                            objectFit: "cover",
+                            border: "1px solid #f0e8e0",
+                          }}
+                        />
                       )}
-                    </span>
+                      <span className="item-name">
+                        {item.name ||
+                          item.product?.name ||
+                          item.productId?.name ||
+                          `SP ${i + 1}`}
+                        {item.quantity && (
+                          <span className="item-qty"> x {item.quantity}</span>
+                        )}
+                      </span>
+                    </div>
                     <span className="item-price">
                       {vnd((item.price || 0) * (item.quantity || 1))}
                     </span>

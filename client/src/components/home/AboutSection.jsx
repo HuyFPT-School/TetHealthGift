@@ -94,8 +94,17 @@ export default function AboutSection() {
             margin: "0 auto",
           }}
         >
-          <span style={{ fontSize: "18px", color: "#999" }}>⌄</span>
-          <span>Đọc tiếp</span>
+          <span
+            style={{
+              fontSize: "18px",
+              color: "#999",
+              transform: expanded ? "rotate(180deg)" : "none",
+              transition: "transform 0.3s",
+            }}
+          >
+            ⌄
+          </span>
+          <span>{expanded ? "Thu gọn" : "Đọc tiếp"}</span>
         </button>
       </div>
     </div>
