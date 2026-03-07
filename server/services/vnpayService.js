@@ -36,8 +36,10 @@ class VNPayService {
     const expireDate = this.formatDate(new Date(Date.now() + 15 * 60 * 1000));
 
     // Loại bỏ ký tự đặc biệt và dấu tiếng Việt khỏi orderInfo
-    // (VNPay yêu cầu tiếng Việt không dấu, không chứa #, &, = ...)
-    const safeOrderInfo = this.removeDiacritics(orderInfo).replace(/[#&=?%]/g, "");
+    // (VNPay yêu cầu tiếng Việt không dấu, không chứa #, &, =, spaces ...)
+    const safeOrderInfo = this.removeDiacritics(orderInfo)
+      .replace(/[#&=?%]/g, "")
+      .replace(/\s+/g, "-"); // Thay dấu cách thành dấu gạch ngang
 
     // Tạo object chứa parameters
     let vnp_Params = {
@@ -69,9 +71,7 @@ class VNPayService {
 
     // Tạo URL thanh toán (không encode - theo official VNPay sample)
     const paymentUrl =
-      vnpayConfig.vnp_Url +
-      "?" +
-      qs.stringify(vnp_Params, { encode: false });
+      vnpayConfig.vnp_Url + "?" + qs.stringify(vnp_Params, { encode: false });
 
     return paymentUrl;
   }
@@ -173,16 +173,23 @@ class VNPayService {
   }
 
   /**
-   * Sắp xếp object theo key (alphabet)
+   * Sắp xếp object theo key (alphabet) VÀ ENCODE (theo VNPay spec)
    * @param {Object} obj - Object cần sắp xếp
-   * @returns {Object} Object đã sắp xếp
+   * @returns {Object} Object đã sắp xếp và encode
    */
   sortObject(obj) {
-    const sorted = {};
-    const keys = Object.keys(obj).sort();
-    keys.forEach((key) => {
-      sorted[key] = obj[key];
-    });
+    let sorted = {};
+    let str = [];
+    let key;
+    for (key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        str.push(encodeURIComponent(key));
+      }
+    }
+    str.sort();
+    for (key = 0; key < str.length; key++) {
+      sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    }
     return sorted;
   }
 }

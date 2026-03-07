@@ -28,9 +28,7 @@ const sendVerificationEmail = async (to, code, fullname) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`Email xác nhận đã gửi tới ${to}`);
   } catch (error) {
-    console.error(`Lỗi gửi email:`, error);
     throw new Error("Không thể gửi email xác nhận.");
   }
 };
@@ -56,9 +54,7 @@ const sendResetPassword = async (to, code) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`Email đặt lại mật khẩu đã gửi tới ${to}`);
   } catch (error) {
-    console.error(`Lỗi gửi email:`, error);
     throw new Error("Không thể gửi email đặt lại mật khẩu.");
   }
 };

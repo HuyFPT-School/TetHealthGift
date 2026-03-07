@@ -113,6 +113,7 @@ class OrderService {
         name: product.name,
         price: price,
         quantity: item.quantity,
+        imageUrl: product.imageUrl || "", // Thêm hình ảnh sản phẩm
       });
     }
 
@@ -224,6 +225,33 @@ class OrderService {
       return order;
     } catch (error) {
       throw new Error(`Lỗi khi cập nhật trạng thái: ${error.message}`);
+    }
+  }
+
+  /**
+   * Hủy đơn hàng
+   */
+  async cancelOrder(orderId) {
+    try {
+      const order = await Order.findById(orderId);
+      if (!order) {
+        throw new Error("Không tìm thấy đơn hàng");
+      }
+
+      // Kiểm tra xem đơn hàng đã bị hủy chưa
+      if (order.orderStatus === "cancelled") {
+        throw new Error("Đơn hàng đã bị hủy trước đó");
+      }
+
+      // Không thể hủy đơn hàng đã giao hoàn thành
+      if (order.orderStatus === "delivered") {
+        throw new Error("Không thể hủy đơn hàng đã giao hoàn thành");
+      }
+
+      // Cập nhật trạng thái sang cancelled (sẽ tự động hoàn trả tồn kho)
+      return await this.updateOrderStatus(orderId, "cancelled");
+    } catch (error) {
+      throw new Error(`Lỗi khi hủy đơn hàng: ${error.message}`);
     }
   }
 
