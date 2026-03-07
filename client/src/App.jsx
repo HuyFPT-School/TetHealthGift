@@ -28,6 +28,8 @@ import CartPage from "./pages/WishlistManagement/CartPage";
 import PayMoneyPage from "./pages/WishlistManagement/PayMoneyPage";
 import PaymentResultPage from "./pages/WishlistManagement/PaymentResultPage";
 import OrderTrackingPage from "./pages/WishlistManagement/OrderTrackingPage";
+import BlogPage from "./pages/BlogPage/BlogPage";
+import BlogDetail from "./components/BlogDetail/BlogDetail";
 
 /* ── Loading ── */
 function AuthLoading() {
@@ -108,6 +110,8 @@ function App() {
           <Route path="/"            element={<HomePage />} />
           <Route path="/qua-tet"     element={<ProductListingPage />} />
           <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
+          <Route path="/blog"        element={<BlogPage />} />
+          <Route path="/blog/:id"    element={<BlogDetail />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<PayMoneyPage />} />
