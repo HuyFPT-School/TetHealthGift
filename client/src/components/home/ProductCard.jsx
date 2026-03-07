@@ -1,3 +1,5 @@
+import { ShoppingCart } from "lucide-react";
+
 export default function ProductCard({ product }) {
   const hasDiscount =
     product.discountPrice && product.discountPrice < product.price;
@@ -195,7 +197,7 @@ export default function ProductCard({ product }) {
           onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
-          <span>🛍</span> MUA HÀNG
+          <span><ShoppingCart size={19} /></span> MUA HÀNG
         </button>
       </div>
     </div>

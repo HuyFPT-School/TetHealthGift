@@ -1,11 +1,9 @@
-// FILE: src/components/PDP/ProductDetailPage.jsx
-// Tích hợp API thật — dùng _id thay vì slug
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchProductById, formatPrice } from "../../services/productService";
 import ReviewSection from "./ReviewSection";
 import { useAuth } from "../../context/AuthContext";
+import { addToWishlist } from "../../api/addWishList";
 
 // Ảnh fallback dùng khi URL không load được (tránh external placeholder service)
 const FALLBACK_IMG =
@@ -191,9 +189,26 @@ export default function ProductDetailPage() {
 
   const tags = Array.isArray(product.tags) ? product.tags : [];
 
-  const handleAddToCart = () => {
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+  const handleAddToCart = async () => {
+    if (!token) {
+      alert("Vui lòng đăng nhập trước");
+      navigate("/login");
+      return;
+    }
+
+    if (!inStock) {
+      alert("Sản phẩm đã hết hàng");
+      return;
+    }
+
+    try {
+      await addToWishlist(product._id, quantity);
+
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   return (
@@ -473,34 +488,6 @@ export default function ProductDetailPage() {
                 {added ? "✓ Đã thêm vào giỏ!" : "🛒 Thêm vào giỏ hàng"}
               </button>
             </div>
-
-            <button
-              style={{
-                width: "100%",
-                padding: "12px",
-                background: "transparent",
-                border: "2px solid #c0392b",
-                color: "#c0392b",
-                borderRadius: 10,
-                fontFamily: "inherit",
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: "pointer",
-                transition: "all .2s",
-                marginBottom: 14,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#c0392b";
-                e.currentTarget.style.color = "#fff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#c0392b";
-              }}
-            >
-              💬 Tư vấn miễn phí qua Zalo
-            </button>
-
             <div
               style={{
                 display: "flex",

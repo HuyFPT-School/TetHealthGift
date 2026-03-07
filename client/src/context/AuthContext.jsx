@@ -12,12 +12,9 @@ const getStoredUser = () => {
     return null;
   }
 };
-const setTokens = (accessToken, refreshToken) => {
+const setTokens = (accessToken) => {
   if (accessToken) {
     localStorage.setItem("accessToken", accessToken);
-  }
-  if (refreshToken) {
-    localStorage.setItem("refreshToken", refreshToken);
   }
 };
 const setStoredUser = (userData) => {
@@ -27,7 +24,6 @@ const setStoredUser = (userData) => {
 };
 const clearTokens = () => {
   localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
 };
 
@@ -35,8 +31,8 @@ const defaultAuth = {
   user: null,
   token: getAccessToken(),
   loading: false,
-  login: (accessToken, refreshToken) => {
-    setTokens(accessToken, refreshToken);
+  login: (accessToken) => {
+    setTokens(accessToken);
   },
   logout: () => {
     clearTokens();
@@ -72,7 +68,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (accessToken, refreshToken, userData) => {
-    setTokens(accessToken, refreshToken);
+    setTokens(accessToken);
     setStoredUser(userData);
     setToken(accessToken);
     setUser(userData);

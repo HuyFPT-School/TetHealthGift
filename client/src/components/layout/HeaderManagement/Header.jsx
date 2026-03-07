@@ -1,22 +1,12 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../../context/AuthContext";
+import { User } from "lucide-react";
 import "./Header.css";
 
-const TABS = [
-  { path: "/admin/analytics", label: "Tổng quan" },
-  { path: "/admin/products", label: "Sản phẩm" },
-  { path: "/admin/blogs", label: "Blog" },
-];
-
-const HeaderManagement = () => {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const { user, logout } = useAuth();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login", { replace: true });
-  };
+const Header = ({ tab, setTab, user, onLogout }) => {
+  const tabs = [
+    { k: "dashboard", icon: "📈", label: "Tổng quan"  },
+    { k: "products",  icon: "🎁", label: "Sản phẩm"   },
+    { k: "orders",    icon: "🛒", label: "Đơn hàng"   },
+  ];
 
   return (
     <header className="header">
@@ -26,16 +16,14 @@ const HeaderManagement = () => {
           <div className="header-logo">🎋</div>
           <div>
             <div className="header-title">Admin Dashboard</div>
-            <div className="header-subtitle">
-              Quản lý hệ thống Tết Health Gift
-            </div>
+            <div className="header-subtitle">Quản lý hệ thống Tết Health Gift</div>
           </div>
         </div>
         <div className="header-actions">
           <span className="header-user">
-            {user?.name || user?.fullname || user?.email || "Admin"}
+            <User size={16} strokeWidth={1.75} /> {user?.fullname || user?.name || user?.email || "Admin"}
           </span>
-          <button className="btn-logout" onClick={handleLogout}>
+          <button className="btn-logout" onClick={onLogout}>
             Đăng xuất
           </button>
         </div>
@@ -43,11 +31,11 @@ const HeaderManagement = () => {
 
       {/* Nav tabs */}
       <nav className="header-nav">
-        {TABS.map((t) => (
+        {tabs.map(t => (
           <div
-            key={t.path}
-            className={`tab-item${pathname === t.path ? " active" : ""}`}
-            onClick={() => navigate(t.path)}
+            key={t.k}
+            className={`tab-item${tab === t.k ? " active" : ""}`}
+            onClick={() => setTab(t.k)}
           >
             <span>{t.icon}</span>
             {t.label}
@@ -58,4 +46,4 @@ const HeaderManagement = () => {
   );
 };
 
-export default HeaderManagement;
+export default Header;

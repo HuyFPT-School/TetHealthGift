@@ -7,18 +7,40 @@ const Product = require("../models/ProductModel");
  */
 class OrderService {
   /**
-   * Lấy tất cả đơn hàng với filter
+   * Lấy tất cả đơn hàng với filter và pagination
    */
-  async getAllOrders(filters = {}) {
+  async getAllOrders(filters = {}, options = {}) {
     try {
+      const { page = 1, limit = 10 } = options;
+
+      // Clean filters - remove undefined/null/empty values
       const cleanFilter = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => v !== undefined && v !== null && v !== "")
-    );
+        Object.entries(filters).filter(
+          ([_, v]) => v !== undefined && v !== null && v !== "",
+        ),
+      );
+
+      // Calculate skip
+      const skip = (page - 1) * limit;
+
+      // Get total count
+      const total = await Order.countDocuments(cleanFilter);
+
+      // Get paginated orders
       const orders = await Order.find(cleanFilter)
         .populate("customer", "fullname email phone")
         .populate("cartItems.product")
-        .sort({ createdAt: -1 });
-      return orders;
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      return {
+        orders,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      };
     } catch (error) {
       throw new Error(`Lỗi khi lấy danh sách đơn hàng: ${error.message}`);
     }
