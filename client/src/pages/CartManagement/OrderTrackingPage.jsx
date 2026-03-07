@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import axiosInstance from "../../lib/axios";
 import { formatPrice } from "../../services/productService";
+import { toast } from "react-toastify";
 import {
   Package,
   Truck,
@@ -180,7 +181,7 @@ function OrderCard({ order, onRefresh }) {
         window.location.href = res.data.paymentUrl;
       }
     } catch (error) {
-      alert(
+      toast.error(
         error.response?.data?.message ||
           "Không thể tạo thanh toán. Vui lòng thử lại.",
       );
@@ -197,10 +198,10 @@ function OrderCard({ order, onRefresh }) {
     try {
       setLoading(true);
       await axiosInstance.patch(`/api/orders/${order._id}/cancel`);
-      alert("Hủy đơn hàng thành công!");
+      toast.success("Hủy đơn hàng thành công!");
       onRefresh(); // Refresh the order list
     } catch (error) {
-      alert(
+      toast.error(
         error.response?.data?.message ||
           "Không thể hủy đơn hàng. Vui lòng thử lại.",
       );

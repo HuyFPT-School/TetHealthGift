@@ -12,13 +12,13 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { getWishlist } from "../../api/addWishList";
+import { getCart } from "../../services/cartService";
 import { formatPrice } from "../../services/productService";
 
 export default function Header() {
   const [searchValue, setSearchValue] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [wishlistItems, setWishlistItems] = useState([]);
+  const [cartItems, setCartItems] = useState([]);
   const [showCartDropdown, setShowCartDropdown] = useState(false);
   const cartDropdownTimeout = useRef(null);
   const dropdownRef = useRef(null);
@@ -36,20 +36,22 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    const fetchWishlist = async () => {
-      if (!user) {
-        setWishlistItems([]);
-        return;
-      }
+    const fetchCart = async () => {
       try {
-        const data = await getWishlist();
-        setWishlistItems(data.wishlist || []);
+        const data = getCart();
+        setCartItems(data || []);
       } catch (error) {
-        console.error("Failed to fetch wishlist:", error);
+        console.error("Failed to fetch cart:", error);
       }
     };
-    fetchWishlist();
-  }, [user]);
+    
+    fetchCart();
+    window.addEventListener("cartUpdated", fetchCart);
+    
+    return () => {
+      window.removeEventListener("cartUpdated", fetchCart);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -460,7 +462,7 @@ export default function Header() {
             >
               <span style={{ position: "relative" }}>
                 <ShoppingCart size={24} color="#555" />
-                {wishlistItems.length > 0 && (
+                {cartItems.length > 0 && (
                   <span
                     style={{
                       position: "absolute",
@@ -477,7 +479,7 @@ export default function Header() {
                       justifyContent: "center",
                     }}
                   >
-                    {wishlistItems.length}
+                    {cartItems.length}
                   </span>
                 )}
               </span>
@@ -510,7 +512,7 @@ export default function Header() {
                 >
                   Sản phẩm mới thêm
                 </div>
-                {wishlistItems.length === 0 ? (
+                {cartItems.length === 0 ? (
                   <div
                     style={{
                       padding: "30px 16px",
@@ -524,7 +526,7 @@ export default function Header() {
                 ) : (
                   <>
                     <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-                      {wishlistItems.slice(0, 5).map((item) => {
+                      {cartItems.slice(0, 5).map((item) => {
                         const product = item.product;
                         if (!product) return null;
                         const price =
@@ -612,9 +614,9 @@ export default function Header() {
                       }}
                     >
                       <span style={{ fontSize: "13px", color: "#888" }}>
-                        {wishlistItems.length > 5
-                          ? `${wishlistItems.length - 5} sản phẩm khác`
-                          : `${wishlistItems.length} sản phẩm`}
+                        {cartItems.length > 5
+                          ? `${cartItems.length - 5} sản phẩm khác`
+                          : `${cartItems.length} sản phẩm`}
                       </span>
                       <button
                         onClick={(e) => {

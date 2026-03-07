@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axiosInstance from "../../lib/axios";
 import { formatPrice } from "../../services/productService";
@@ -8,19 +8,29 @@ export default function PaymentResultPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState("loading"); // loading | success | failed
-  const [paymentData, setPaymentData] = useState(null);
+
+  // Initialize status from location state if it's COD
+  const initialStatus = useMemo(() => {
+    return location.state?.method === "cod" ? "success" : "loading";
+  }, [location.state]);
+
+  const initialPaymentData = useMemo(() => {
+    if (location.state?.method === "cod") {
+      return {
+        orderId: location.state.orderId,
+        amount: location.state.amount,
+      };
+    }
+    return null;
+  }, [location.state]);
+
+  const [status, setStatus] = useState(initialStatus);
+  const [paymentData, setPaymentData] = useState(initialPaymentData);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    // COD: nhận kết quả từ route state
-    const codState = location.state;
-    if (codState?.method === "cod") {
-      setStatus("success");
-      setPaymentData({
-        orderId: codState.orderId,
-        amount: codState.amount,
-      });
+    // Skip if already handled (COD case)
+    if (location.state?.method === "cod") {
       return;
     }
 
@@ -35,7 +45,6 @@ export default function PaymentResultPage() {
         const bankCode = searchParams.get("bankCode");
         const paymentMethod = searchParams.get("paymentMethod");
         const message = searchParams.get("message");
-        const responseCode = searchParams.get("responseCode");
 
         // Check if redirected from backend
         if (statusParam === "success") {
@@ -58,7 +67,6 @@ export default function PaymentResultPage() {
           if (vnpResponseCode !== null) {
             // VNPay return - forward query params to backend
             const queryString = searchParams.toString();
-            console.log("VNPay return query params:", queryString);
             const res = await axiosInstance.get(
               `/api/payment/vnpay-return?${queryString}`,
             );
