@@ -19,12 +19,13 @@ const getDashboardStats = async (req, res) => {
       createdAt: { $gte: today, $lt: tomorrow },
     });
 
-    // 2. Doanh thu hôm nay (chỉ tính đơn đã thanh toán)
+    // 2. Doanh thu hôm nay (chỉ tính đơn hợp lệ)
     const todayRevenueResult = await Order.aggregate([
       {
         $match: {
           createdAt: { $gte: today, $lt: tomorrow },
-          paymentStatus: "paid",
+          orderStatus: { $ne: "cancelled" },
+          $or: [{ paymentMethod: "cod" }, { paymentStatus: "paid" }],
         },
       },
       {
@@ -44,11 +45,12 @@ const getDashboardStats = async (req, res) => {
     // 4. Tổng số sản phẩm
     const totalProducts = await Product.countDocuments();
 
-    // 5. Tổng doanh thu (tất cả đơn đã thanh toán)
+    // 5. Tổng doanh thu (tất cả đơn hợp lệ)
     const totalRevenueResult = await Order.aggregate([
       {
         $match: {
-          paymentStatus: "paid",
+          orderStatus: { $ne: "cancelled" },
+          $or: [{ paymentMethod: "cod" }, { paymentStatus: "paid" }],
         },
       },
       {
@@ -74,7 +76,8 @@ const getDashboardStats = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: sevenDaysAgo },
-          paymentStatus: "paid",
+          orderStatus: { $ne: "cancelled" },
+          $or: [{ paymentMethod: "cod" }, { paymentStatus: "paid" }],
         },
       },
       {
