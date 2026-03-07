@@ -1,0 +1,198 @@
+.users-page {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+.users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.users-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--red);
+}
+
+.users-count {
+  font-size: 13px;
+  color: #888;
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #aaa;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.select-role {
+  min-width: 150px;
+}
+
+/* ── Table ── */
+.table-card { overflow: hidden; }
+
+.table-loading,
+.table-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+}
+
+.table-error { color: #991B1B; font-weight: 600; }
+
+/* ── Avatar ── */
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #F0F0F0;
+}
+
+.user-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), var(--red-dark));
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-info { display: flex; align-items: center; gap: 10px; }
+.user-name { font-weight: 600; font-size: 14px; color: #222; }
+.user-email { font-size: 12px; color: #888; margin-top: 1px; }
+
+/* ── Role badge ── */
+.role-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── Verify badge ── */
+.verify-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Empty ── */
+.empty-row td {
+  text-align: center;
+  padding: 48px;
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* ── Modal form ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.form-grid .field.full {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #555;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+.field .inp,
+.field select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #F0F0F0;
+}
+
+/* ── Confirm delete ── */
+.confirm-body {
+  padding: 8px 0 20px;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.6;
+}
+
+.confirm-name {
+  font-weight: 700;
+  color: #991B1B;
+}
+
+/* ── Pagination ── */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 0 4px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #DDD;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: all .15s;
+  color: #444;
+}
+
+.page-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+.page-btn.active { background: var(--red); color: #fff; border-color: var(--red); font-weight: 700; }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }

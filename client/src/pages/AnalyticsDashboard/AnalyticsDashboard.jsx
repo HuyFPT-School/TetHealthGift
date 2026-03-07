@@ -40,9 +40,11 @@ const AnalyticsDashboard = () => {
           axiosInstance.get("/api/orders?limit=200"),
           axiosInstance.get("/api/products?limit=200"),
         ]);
-        // Backend trả { message, data: [...] }
-        const orderList   = oRes.data?.data   || oRes.data?.orders   || [];
-        const productList = pRes.data?.data    || pRes.data?.products || [];
+
+        // Backend trả { message, data: { orders: [] } } và { message, data: { products: [] } }
+        const orderList   = oRes.data?.data?.orders   || oRes.data?.orders   || [];
+        const productList = pRes.data?.data?.products || pRes.data?.products || [];
+
         setOrders(Array.isArray(orderList)   ? orderList   : []);
         setProducts(Array.isArray(productList) ? productList : []);
       } catch (e) {
@@ -55,26 +57,29 @@ const AnalyticsDashboard = () => {
   }, []);
 
   if (loading) return <div className="page-center"><Spinner size={36} /></div>;
-  if (error)   return <div className="page-error"> Lỗi tải dữ liệu: {error}</div>;
+  if (error)   return <div className="page-error">❌ Lỗi tải dữ liệu: {error}</div>;
 
-  // totalAmount là field đúng trong DB
+  // ── Computed — dùng totalAmount (đúng với MongoDB) ──
   const today      = new Date().toDateString();
   const todayOrds  = orders.filter(o => new Date(o.createdAt).toDateString() === today);
-  const todayRev   = todayOrds.reduce((s, o) => s + (o.totalAmount || 0), 0);
-  const totalRev   = orders.filter(o => o.orderStatus !== "cancelled")
-                           .reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const todayRev   = todayOrds.reduce((s, o) => s + (o.totalAmount || o.totalPrice || 0), 0);
+  const totalRev   = orders
+    .filter(o => o.orderStatus !== "cancelled")
+    .reduce((s, o) => s + (o.totalAmount || o.totalPrice || 0), 0);
   const lowStock   = products.filter(p => (p.quantity || 0) <= 10);
   const processing = orders.filter(o => o.orderStatus === "processing").length;
 
+  // ── Revenue last 7 days ──
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i));
     const ds = d.toDateString();
     const rev = orders
       .filter(o => new Date(o.createdAt).toDateString() === ds && o.orderStatus !== "cancelled")
-      .reduce((s, o) => s + (o.totalAmount || 0), 0);
+      .reduce((s, o) => s + (o.totalAmount || o.totalPrice || 0), 0);
     return { day: d.toLocaleDateString("vi-VN", { weekday: "short" }), v: rev };
   });
 
+  // ── Category pie ──
   const catMap = {};
   products.forEach(p => {
     const name = p.category?.name || p.category || "Khác";
@@ -86,15 +91,18 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="dashboard-page fade-in">
+
+      {/* KPI Grid */}
       <div className="kpi-grid">
-        <KpiCard  label="Đơn Hàng Hôm Nay"   value={todayOrds.length} borderColor="#1E40AF" />
-        <KpiCard  label="Doanh Thu Hôm Nay"  value={vnd(todayRev)}    borderColor="#166534" />
-        <KpiCard  label="Sản Phẩm Sắp Hết"  value={lowStock.length}  borderColor="#991B1B" />
-        <KpiCard  label="Tổng Sản Phẩm"     value={products.length}  borderColor="#6B21A8" />
-        <KpiCard  label="Tổng Doanh Thu"     value={vnd(totalRev)}    borderColor="#92400E" />
-        <KpiCard  label="Chờ Xác Nhận"       value={processing}       borderColor="#166534" />
+        <KpiCard icon="🛒" iconBg="#DBEAFE" label="Đơn Hàng Hôm Nay"  value={todayOrds.length} borderColor="#1E40AF" />
+        <KpiCard icon="💵" iconBg="#DCFCE7" label="Doanh Thu Hôm Nay" value={vnd(todayRev)}    borderColor="#166534" />
+        <KpiCard icon="⚠️" iconBg="#FEE2E2" label="Sản Phẩm Sắp Hết"  value={lowStock.length}  borderColor="#991B1B" />
+        <KpiCard icon="📦" iconBg="#F3E8FF" label="Tổng Sản Phẩm"     value={products.length}  borderColor="#6B21A8" />
+        <KpiCard icon="💰" iconBg="#FEF9C3" label="Tổng Doanh Thu"     value={vnd(totalRev)}    borderColor="#92400E" />
+        <KpiCard icon="📋" iconBg="#F0FDF4" label="Chờ Xác Nhận"       value={processing}       borderColor="#166534" />
       </div>
 
+      {/* Charts Row */}
       <div className="charts-row">
         <div className="card chart-card">
           <h3 className="card-title">Biểu đồ doanh thu 7 ngày</h3>
@@ -144,10 +152,11 @@ const AnalyticsDashboard = () => {
         </div>
       </div>
 
+      {/* Low Stock */}
       {lowStock.length > 0 && (
         <div className="card low-stock-card">
           <h3 className="card-title warn-title">
-             Cảnh báo tồn kho thấp ({lowStock.length} sản phẩm)
+            <span>⚠️</span> Cảnh báo tồn kho thấp ({lowStock.length} sản phẩm)
           </h3>
           {lowStock.slice(0, 5).map((p, i) => (
             <div key={p._id} className={`low-stock-row${i % 2 === 0 ? " alt" : ""}`}>
@@ -170,8 +179,9 @@ const AnalyticsDashboard = () => {
         </div>
       )}
 
+      {/* Recent Orders */}
       <div className="card recent-orders-card">
-        <h3 className="card-title"> Đơn hàng gần đây</h3>
+        <h3 className="card-title">🕐 Đơn hàng gần đây</h3>
         <div style={{ overflowX: "auto" }}>
           <table className="tbl">
             <thead>
@@ -186,8 +196,8 @@ const AnalyticsDashboard = () => {
                 <tr key={o._id} className="row-hover"
                   style={{ background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
                   <td className="order-id">#{o._id?.slice(-6).toUpperCase()}</td>
-                  <td>{o.customer?.fullname || o.customerId?.fullname || "—"}</td>
-                  <td className="order-total">{vnd(o.totalAmount)}</td>
+                  <td>{o.customer?.fullname || o.customerId?.fullname || o.userId?.fullname || "—"}</td>
+                  <td className="order-total">{vnd(o.totalAmount || o.totalPrice)}</td>
                   <td><StatusBadge status={o.orderStatus} /></td>
                   <td className="order-date">{fmtDate(o.createdAt)}</td>
                 </tr>
