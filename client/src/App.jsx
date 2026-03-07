@@ -26,6 +26,8 @@ import VerifyEmailOTP from "./pages/Auth/VerifyEmailOTP";
 import AccountPage from "./pages/Account/index";
 import CartPage from "./pages/WishlistManagement/CartPage";
 import PayMoneyPage from "./pages/WishlistManagement/PayMoneyPage";
+import PaymentResultPage from "./pages/WishlistManagement/PaymentResultPage";
+import OrderTrackingPage from "./pages/WishlistManagement/OrderTrackingPage";
 
 /* ── Loading ── */
 function AuthLoading() {
@@ -106,9 +108,11 @@ function App() {
           <Route path="/"            element={<HomePage />} />
           <Route path="/qua-tet"     element={<ProductListingPage />} />
           <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
-          <Route path="/account"     element={<AccountPage />} />
-          <Route path="/cart"        element={<CartPage />} />
-          <Route path="/checkout"    element={<PayMoneyPage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<PayMoneyPage />} />
+          <Route path="/payment-result" element={<PaymentResultPage />} />
+          <Route path="/my-orders" element={<OrderTrackingPage />} />
         </Route>
 
         {/* ── Admin only ── */}

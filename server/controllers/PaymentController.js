@@ -37,13 +37,15 @@ const createVNPayPayment = async (req, res) => {
       });
     }
 
-    // Lấy IP address của client
-    const ipAddr =
+    // Lấy IP address của client (VNPay yêu cầu IPv4)
+    let ipAddr =
       req.headers["x-forwarded-for"] ||
       req.connection.remoteAddress ||
       req.socket.remoteAddress ||
-      req.connection.socket.remoteAddress ||
       "127.0.0.1";
+    // Chuyển IPv6 sang IPv4 (::ffff:127.0.0.1 → 127.0.0.1, ::1 → 127.0.0.1)
+    if (ipAddr === "::1") ipAddr = "127.0.0.1";
+    if (ipAddr.startsWith("::ffff:")) ipAddr = ipAddr.slice(7);
 
     // Tạo URL thanh toán VNPAY
     const paymentUrl = vnpayService.createPaymentUrl({
