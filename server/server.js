@@ -61,6 +61,9 @@ app.use("/api/analytics", AnalyticsRoute);
 // Server setup
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {});
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Swagger Documentation: http://localhost:${PORT}/api-docs`);
+});
 
 module.exports = app;
