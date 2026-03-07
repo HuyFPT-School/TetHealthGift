@@ -4,17 +4,11 @@
 import { useState, useEffect, useCallback, useTransition } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchProducts } from "../../services/productService";
+import { fetchCategories } from "../../services/categoryService";
 import ProductCard from "./ProductCard";
 import FilterSidebar from "./FilterSidebar";
 import SearchBar from "./SearchBar";
-
-const SORT_MAP = {
-  default: undefined,
-  popular: "-soldCount",
-  rating: "-rating",
-  "price-asc": "price",
-  "price-desc": "-price",
-};
+import { Search } from "lucide-react";
 
 const PRICE_RANGE_MAP = {
   "under-300": { minPrice: 0, maxPrice: 300000 },
@@ -22,32 +16,6 @@ const PRICE_RANGE_MAP = {
   "500-800": { minPrice: 500000, maxPrice: 800000 },
   "over-800": { minPrice: 800000, maxPrice: undefined },
 };
-
-const FILTER_OPTIONS = {
-  categories: [
-    { value: "all", label: "Tất cả" },
-    { value: "qua-tet", label: "Quà Tết" },
-    { value: "qua-doanh-nghiep", label: "Quà Doanh Nghiệp" },
-    { value: "qua-suc-khoe", label: "Quà Sức Khỏe" },
-  ],
-  priceRanges: [
-    { value: "all", label: "Tất cả mức giá" },
-    { value: "under-300", label: "Dưới 300.000đ" },
-    { value: "300-500", label: "300.000đ – 500.000đ" },
-    { value: "500-800", label: "500.000đ – 800.000đ" },
-    { value: "over-800", label: "Trên 800.000đ" },
-  ],
-  herbs: [],
-  benefits: [],
-};
-
-const SORT_OPTIONS = [
-  { value: "default", label: "Mặc định" },
-  { value: "popular", label: "Bán chạy nhất" },
-  { value: "rating", label: "Đánh giá cao" },
-  { value: "price-asc", label: "Giá thấp → cao" },
-  { value: "price-desc", label: "Giá cao → thấp" },
-];
 
 function SkeletonCard() {
   return (
@@ -138,8 +106,9 @@ export default function ProductListingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [products, setProducts] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [allProducts, setAllProducts] = useState([]); // Tất cả products từ API
+  const [filteredProducts, setFilteredProducts] = useState([]); // Products sau khi filter/sort
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isPending, startTransition] = useTransition();
@@ -154,24 +123,33 @@ export default function ProductListingPage() {
     search: searchParams.get("search") || "",
   });
 
-  // Fetch khi filter/sort thay đổi
+  // Fetch categories on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await fetchCategories();
+        setCategories(cats);
+      } catch (err) {
+        console.error("Error loading categories:", err);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // Fetch products từ API (chỉ dùng category và search)
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const priceParams = PRICE_RANGE_MAP[filters.priceRange] || {};
-        const { products: list, total: t } = await fetchProducts({
-          limit: 100,
+        const { products: list } = await fetchProducts({
+          limit: 1000, // Lấy nhiều products để filter phía client
           category: filters.category !== "all" ? filters.category : undefined,
           search: filters.search || undefined,
-          sort: SORT_MAP[sortBy],
-          ...priceParams,
         });
 
-        setProducts(list);
-        setTotal(t);
+        setAllProducts(list);
       } catch (err) {
         console.error(err);
         setError("Không thể tải sản phẩm. Vui lòng thử lại.");
@@ -180,7 +158,49 @@ export default function ProductListingPage() {
       }
     };
     load();
-  }, [filters, sortBy]);
+  }, [filters.category, filters.search]);
+
+  // Filter và sort phía client khi allProducts, priceRange, hoặc sortBy thay đổi
+  useEffect(() => {
+    let result = [...allProducts];
+
+    // Filter theo price range
+    if (filters.priceRange !== "all") {
+      const priceRange = PRICE_RANGE_MAP[filters.priceRange];
+      if (priceRange) {
+        result = result.filter((product) => {
+          const price = product.discountPrice || product.price;
+          const meetsMin =
+            priceRange.minPrice === undefined || price >= priceRange.minPrice;
+          const meetsMax =
+            priceRange.maxPrice === undefined || price <= priceRange.maxPrice;
+          return meetsMin && meetsMax;
+        });
+      }
+    }
+
+    // Sort
+    if (sortBy !== "default") {
+      switch (sortBy) {
+        case "price-asc":
+          result.sort((a, b) => {
+            const priceA = a.discountPrice || a.price;
+            const priceB = b.discountPrice || b.price;
+            return priceA - priceB;
+          });
+          break;
+        case "price-desc":
+          result.sort((a, b) => {
+            const priceA = a.discountPrice || a.price;
+            const priceB = b.discountPrice || b.price;
+            return priceB - priceA;
+          });
+          break;
+      }
+    }
+
+    setFilteredProducts(result);
+  }, [allProducts, filters.priceRange, sortBy]);
 
   const handleFilterChange = useCallback((key, value) => {
     startTransition(() => setFilters((prev) => ({ ...prev, [key]: value })));
@@ -207,6 +227,26 @@ export default function ProductListingPage() {
     filters.priceRange !== "all" ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
+  // Build dynamic filter options from fetched categories
+  const filterOptions = {
+    categories: [
+      { value: "all", label: "Tất cả" },
+      ...categories.map((cat) => ({
+        value: cat._id, // Use the MongoDB ObjectId
+        label: cat.name,
+      })),
+    ],
+    priceRanges: [
+      { value: "all", label: "Tất cả mức giá" },
+      { value: "under-300", label: "Dưới 300.000đ" },
+      { value: "300-500", label: "300.000đ – 500.000đ" },
+      { value: "500-800", label: "500.000đ – 800.000đ" },
+      { value: "over-800", label: "Trên 800.000đ" },
+    ],
+    herbs: [],
+    benefits: [],
+  };
+
   const isLoading = loading || isPending;
 
   return (
@@ -231,7 +271,7 @@ export default function ProductListingPage() {
           <h1
             style={{ color: "#fff", fontSize: 28, fontWeight: 700, margin: 0 }}
           >
-            🎁 Hộp Quà Tết 2026
+            Hộp Quà Tết 2026
           </h1>
           <p
             style={{
@@ -240,7 +280,7 @@ export default function ProductListingPage() {
               marginTop: 6,
             }}
           >
-            {isLoading ? "Đang tải..." : `${total} sản phẩm`}
+            {isLoading ? "Đang tải..." : `${filteredProducts.length} sản phẩm`}
           </p>
         </div>
       </div>
@@ -257,7 +297,7 @@ export default function ProductListingPage() {
           <SearchBar
             value={filters.search}
             onChange={handleSearchChange}
-            products={products}
+            products={filteredProducts}
           />
         </div>
       </div>
@@ -276,7 +316,7 @@ export default function ProductListingPage() {
         {sidebarOpen && (
           <FilterSidebar
             filters={filters}
-            options={FILTER_OPTIONS}
+            options={filterOptions}
             onChange={handleFilterChange}
             onReset={resetFilters}
             activeCount={activeFilterCount}
@@ -336,7 +376,7 @@ export default function ProductListingPage() {
               {filters.category !== "all" && (
                 <FilterTag
                   label={
-                    FILTER_OPTIONS.categories.find(
+                    filterOptions.categories.find(
                       (c) => c.value === filters.category,
                     )?.label
                   }
@@ -346,7 +386,7 @@ export default function ProductListingPage() {
               {filters.priceRange !== "all" && (
                 <FilterTag
                   label={
-                    FILTER_OPTIONS.priceRanges.find(
+                    filterOptions.priceRanges.find(
                       (r) => r.value === filters.priceRange,
                     )?.label
                   }
@@ -355,37 +395,25 @@ export default function ProductListingPage() {
               )}
             </div>
 
-            {/* Sort */}
-            <div
+            {/* Sort dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
               style={{
-                marginLeft: "auto",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
+                padding: "8px 12px",
+                border: "1.5px solid #e0c0bc",
+                borderRadius: 8,
+                background: "#fff",
+                color: "#2C1810",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
               }}
             >
-              <span style={{ fontSize: 13, color: "#888" }}>Sắp xếp:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  padding: "8px 14px",
-                  border: "1.5px solid #e0c0bc",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontFamily: "inherit",
-                  background: "#fff",
-                  color: "#333",
-                  cursor: "pointer",
-                }}
-              >
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <option value="default">Mặc định</option>
+              <option value="price-asc">Giá: Thấp đến cao</option>
+              <option value="price-desc">Giá: Cao đến thấp</option>
+            </select>
           </div>
 
           {/* Error */}
@@ -432,11 +460,13 @@ export default function ProductListingPage() {
                 <SkeletonCard key={i} />
               ))}
             </div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div
               style={{ textAlign: "center", padding: "60px 0", color: "#aaa" }}
             >
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>
+                <Search />
+              </div>
               <p style={{ fontSize: 16, fontWeight: 600 }}>
                 Không tìm thấy sản phẩm phù hợp
               </p>
@@ -467,7 +497,7 @@ export default function ProductListingPage() {
                 gap: 20,
               }}
             >
-              {products.map((product, i) => (
+              {filteredProducts.map((product, i) => (
                 <ProductCard
                   key={product._id || product.id}
                   product={product}

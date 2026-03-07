@@ -1,6 +1,7 @@
 // FILE: src/components/PLP/SearchBar.jsx
 // Tìm kiếm có debounce, gợi ý từ data thật (props), không dùng mockdata
 
+import { Search } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 function useDebounce(value, delay) {
@@ -88,7 +89,7 @@ export default function SearchBar({ value, onChange, products = [] }) {
             color: "#c0392b",
           }}
         >
-          🔍
+          <Search />
         </span>
         <input
           ref={inputRef}

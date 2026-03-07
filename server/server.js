@@ -14,6 +14,7 @@ const BlogRoutes = require("./routes/BlogRoutes");
 const UploadRoute = require("./routes/UploadRoute");
 const PaymentRoutes = require("./routes/PaymentRoutes");
 const WishlistRoute = require("./routes/WishlistRoute");
+const AnalyticsRoute = require("./routes/AnalyticsRoute");
 
 const app = express();
 database.connect();
@@ -54,7 +55,7 @@ app.use("/api/blogs", BlogRoutes);
 app.use("/api/upload", UploadRoute);
 app.use("/api/payment", PaymentRoutes);
 app.use("/api/wishlist", WishlistRoute);
-
+app.use("/api/analytics", AnalyticsRoute);
 
 // Server setup
 const PORT = process.env.PORT || 3000;

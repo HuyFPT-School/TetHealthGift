@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ProductCard from "./ProductCard";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ProductGrid() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [perPage, setPerPage] = useState(8);
   const [sort, setSort] = useState("default");
@@ -20,15 +22,9 @@ export default function ProductGrid() {
           params: { limit: 100 },
         });
 
-        // BE có thể trả về response.data hoặc response.data.products
+        // Backend trả về { data: { products: [...], total: ... } }
         const raw = response.data;
-        const list = Array.isArray(raw)
-          ? raw
-          : Array.isArray(raw.products)
-            ? raw.products
-            : Array.isArray(raw.data)
-              ? raw.data
-              : [];
+        const list = raw.data?.products || [];
 
         setProducts(list);
         setError(null);
@@ -98,69 +94,6 @@ export default function ProductGrid() {
 
       {!loading && !error && products.length > 0 && (
         <>
-          {/* Filter bar */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "24px",
-              fontSize: "13px",
-              color: "#555",
-              borderTop: "1px solid #f0f0f0",
-              borderBottom: "1px solid #f0f0f0",
-              padding: "12px 0",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span>☰</span>
-              <span style={{ fontWeight: "600" }}>Bộ lọc</span>
-              <span style={{ color: "#999" }}>
-                ({products.length} sản phẩm)
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "4px" }}
-              >
-                <span>Hiển thị:</span>
-                {[8, 12, 18, 24].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setPerPage(n)}
-                    style={{
-                      background: perPage === n ? "#c0392b" : "transparent",
-                      color: perPage === n ? "#fff" : "#555",
-                      border: "1px solid #ddd",
-                      borderRadius: "4px",
-                      padding: "3px 8px",
-                      cursor: "pointer",
-                      fontSize: "12px",
-                      fontWeight: perPage === n ? "700" : "400",
-                    }}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  padding: "6px 12px",
-                  fontSize: "13px",
-                  color: "#555",
-                }}
-              >
-                <option value="default">Sắp xếp mặc định</option>
-                <option value="asc">Giá tăng dần</option>
-                <option value="desc">Giá giảm dần</option>
-              </select>
-            </div>
-          </div>
-
           <div
             style={{
               display: "grid",
@@ -171,6 +104,35 @@ export default function ProductGrid() {
             {sorted.slice(0, perPage).map((p) => (
               <ProductCard key={p._id || p.id} product={p} />
             ))}
+          </div>
+
+          {/* Nút Xem thêm */}
+          <div style={{ textAlign: "center", marginTop: "32px" }}>
+            <button
+              onClick={() => navigate("/qua-tet")}
+              style={{
+                background: "linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                padding: "14px 36px",
+                fontSize: "15px",
+                fontWeight: "700",
+                cursor: "pointer",
+                boxShadow: "0 4px 15px rgba(192,57,43,0.3)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = "0 6px 20px rgba(192,57,43,0.4)";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = "0 4px 15px rgba(192,57,43,0.3)";
+              }}
+            >
+              Xem thêm sản phẩm →
+            </button>
           </div>
         </>
       )}
