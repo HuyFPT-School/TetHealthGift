@@ -1,6 +1,13 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { Gift, LayoutDashboard, ShoppingCart, Users, BookOpen } from "lucide-react";
+import {
+  Gift,
+  LayoutDashboard,
+  ShoppingCart,
+  Users,
+  BookOpen,
+  Package,
+} from "lucide-react";
 
 export default function AdminNavbar() {
   const location = useLocation();
@@ -13,10 +20,31 @@ export default function AdminNavbar() {
   };
 
   const navItems = [
-    { path: "/admin/analytics", icon: <LayoutDashboard size={16} strokeWidth={1.75} />, label: "Tổng quan" },
-    { path: "/admin/products",  icon: <Gift           size={16} strokeWidth={1.75} />, label: "Sản phẩm" },
-    { path: "/admin/users",     icon: <Users          size={16} strokeWidth={1.75} />, label: "Người dùng" },
-    { path: "/admin/blogs",     icon: <BookOpen       size={16} strokeWidth={1.75} />, label: "Blog" },
+    {
+      path: "/admin/analytics",
+      icon: <LayoutDashboard size={16} strokeWidth={1.75} />,
+      label: "Tổng quan",
+    },
+    {
+      path: "/admin/products",
+      icon: <Gift size={16} strokeWidth={1.75} />,
+      label: "Sản phẩm",
+    },
+    {
+      path: "/admin/packaging",
+      icon: <Package size={16} strokeWidth={1.75} />,
+      label: "Bao bì",
+    },
+    {
+      path: "/admin/users",
+      icon: <Users size={16} strokeWidth={1.75} />,
+      label: "Người dùng",
+    },
+    {
+      path: "/admin/blogs",
+      icon: <BookOpen size={16} strokeWidth={1.75} />,
+      label: "Blog",
+    },
   ];
 
   return (
@@ -39,10 +67,23 @@ export default function AdminNavbar() {
         {/* Logo & Brand */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#fff",
+                lineHeight: 1.2,
+              }}
+            >
               Admin Dashboard
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: "rgba(255,255,255,0.7)",
+                marginTop: 2,
+              }}
+            >
               Quản lý hệ thống Tết Health Gift
             </div>
           </div>
@@ -63,7 +104,9 @@ export default function AdminNavbar() {
             }}
           >
             <span>👤</span>
-            <span>{user?.fullname || user?.name || user?.email || "Admin"}</span>
+            <span>
+              {user?.fullname || user?.name || user?.email || "Admin"}
+            </span>
             <span
               style={{
                 fontSize: 11,
@@ -89,8 +132,12 @@ export default function AdminNavbar() {
               cursor: "pointer",
               fontFamily: "inherit",
             }}
-            onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
-            onMouseOut={e  => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.background = "rgba(255,255,255,0.25)")
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.background = "rgba(255,255,255,0.15)")
+            }
           >
             Đăng xuất
           </button>
@@ -114,15 +161,18 @@ export default function AdminNavbar() {
                 textDecoration: "none",
                 fontSize: 14,
                 fontWeight: isActive ? 700 : 500,
-                borderBottom: isActive ? "3px solid #fff" : "3px solid transparent",
+                borderBottom: isActive
+                  ? "3px solid #fff"
+                  : "3px solid transparent",
                 transition: "all 0.2s",
                 whiteSpace: "nowrap",
               }}
-              onMouseOver={e => {
+              onMouseOver={(e) => {
                 if (!isActive) e.currentTarget.style.color = "#fff";
               }}
-              onMouseOut={e => {
-                if (!isActive) e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+              onMouseOut={(e) => {
+                if (!isActive)
+                  e.currentTarget.style.color = "rgba(255,255,255,0.7)";
               }}
             >
               {item.icon}

@@ -32,7 +32,9 @@ import PaymentResultPage from "./pages/CartManagement/PaymentResultPage";
 import OrderTrackingPage from "./pages/CartManagement/OrderTrackingPage";
 import BlogPage from "./pages/BlogPage/BlogPage";
 import BlogDetail from "./components/BlogDetail/BlogDetail";
+import PromotionManagement from "./pages/PromotionManagement/PromotionManagement";
 import CustomBasketBuilder from "./pages/CustomBasketBuilder/CustomBasketBuilder";
+import PackagingManagement from "./pages/PackagingManagement/PackagingManagement";
 
 /* ── Loading ── */
 function AuthLoading() {
@@ -158,6 +160,7 @@ function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
             <Route path="/admin/products" element={<ProductManagement />} />
+            <Route path="/admin/packaging" element={<PackagingManagement />} />
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/blogs" element={<BlogManagement />} />
           </Route>
@@ -171,10 +174,7 @@ function App() {
               path="/staff/reviews"
               element={<ComingSoon title="Quản lý đánh giá" />}
             />
-            <Route
-              path="/staff/coupons"
-              element={<ComingSoon title="Quản lý mã giảm giá" />}
-            />
+            <Route path="/staff/promotions" element={<PromotionManagement />} />
           </Route>
         </Route>
 

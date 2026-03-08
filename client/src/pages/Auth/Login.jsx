@@ -89,7 +89,7 @@ function Login() {
       }
 
       if (user?.role === "Admin") {
-        navigate("/admin/products");
+        navigate("/admin/analytics");
       } else if (user?.role === "StaffManager") {
         navigate("/staff/orders");
       } else {
