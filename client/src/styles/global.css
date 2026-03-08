@@ -29,6 +29,7 @@
   /* Text Colors */
   --dark: #2c1810;
   --dark2: #4a2c1a;
+  --red-dark: #8b0000;
   --muted: #8b7355;
 
   /* Borders & Shadows */
@@ -254,10 +255,19 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: background 0.15s;
+  transition:
+    background 0.18s ease,
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    filter 0.18s ease;
+  will-change: transform, box-shadow;
+  filter: brightness(1);
 }
 .btn-primary:hover {
-  background: var(--red-dark);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  /* subtly darken gradient for hover without abrupt swap */
+  filter: brightness(0.93);
 }
 .btn-primary:disabled {
   opacity: 0.5;

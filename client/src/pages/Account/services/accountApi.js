@@ -44,12 +44,6 @@ export const uploadAvatar = async (file) => {
     const formData = new FormData();
     formData.append("avatar", file);
 
-    console.log("Uploading avatar...", {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-    });
-
     const response = await axiosInstance.post(`/api/upload/avatar`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",

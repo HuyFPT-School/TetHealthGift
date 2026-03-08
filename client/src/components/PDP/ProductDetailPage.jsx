@@ -197,8 +197,7 @@ export default function ProductDetailPage() {
       setAdded(true);
       toast.success("Đã thêm vào giỏ hàng thành công!");
       setTimeout(() => setAdded(false), 2000);
-    } catch (error) {
-      console.log("Error: ", error)
+    } catch {
       toast.error("Không thể thêm vào giỏ hàng");
     }
   };

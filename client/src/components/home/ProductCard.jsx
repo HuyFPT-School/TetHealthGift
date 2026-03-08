@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { addToCart } from "../../services/cartService";
+import { formatPrice } from "../../services/productService";
 import { toast } from "react-toastify";
 
 export default function ProductCard({ product }) {
@@ -13,11 +14,6 @@ export default function ProductCard({ product }) {
     product.discountPrice && product.discountPrice < product.price;
 
   const inStock = product.quantity > 0;
-
-  const formatPrice = (price) => {
-    if (typeof price === "number") return price.toLocaleString("vi-VN") + " đ";
-    return price;
-  };
 
   // imageUrl là array từ BE → lấy phần tử đầu tiên
   const imageUrl = Array.isArray(product.imageUrl)
@@ -50,8 +46,7 @@ export default function ProductCard({ product }) {
       setAdded(true);
       toast.success("Đã thêm vào giỏ hàng thành công!");
       setTimeout(() => setAdded(false), 2000);
-    } catch (error) {
-      console.log("Error: ", error);
+    } catch {
       toast.error("Không thể thêm vào giỏ hàng");
     }
   };
