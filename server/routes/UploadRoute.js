@@ -5,6 +5,7 @@ const {
   uploadAvatar,
   uploadProductImage,
   uploadBlogImage,
+  uploadPackagingImage,
 } = require("../controllers/UploadController");
 const { authenticateToken } = require("../middleware/auth");
 
@@ -111,6 +112,41 @@ router.post(
   authenticateToken,
   upload.single("image"),
   uploadBlogImage,
+);
+
+/**
+ * @swagger
+ * /api/upload/packaging:
+ *   post:
+ *     summary: Upload packaging image
+ *     tags: [Upload]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Packaging image uploaded successfully
+ *       400:
+ *         description: No file selected
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.post(
+  "/packaging",
+  authenticateToken,
+  upload.single("image"),
+  uploadPackagingImage,
 );
 
 module.exports = router;

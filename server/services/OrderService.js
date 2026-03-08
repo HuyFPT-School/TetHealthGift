@@ -87,34 +87,98 @@ class OrderService {
     let totalAmount = 0;
 
     for (const item of cartItems) {
-      if (!item.product || !item.quantity) {
+      const isCustom = Boolean(item.isCustomBasket || item.basketData);
+
+      // Validate based on item type
+      if (!isCustom && (!item.product || !item.quantity)) {
         throw new Error("Thông tin sản phẩm trong giỏ hàng không hợp lệ");
       }
 
-      const product = await Product.findById(item.product);
-      if (!product) {
-        throw new Error(`Không tìm thấy sản phẩm có ID: ${item.product}`);
+      if (isCustom) {
+        if (!item.basketData) {
+          throw new Error(
+            "Dữ liệu giỏ quà tùy chỉnh bị thiếu hoặc không hợp lệ",
+          );
+        }
+        const basketData = item.basketData;
+
+        // Validate stock for all items in custom basket
+        if (!basketData.items || !Array.isArray(basketData.items)) {
+          throw new Error("Dữ liệu sản phẩm trong giỏ quà bị thiết hợp lệ");
+        }
+
+        for (const basketItem of basketData.items) {
+          // Handle both cases simpler: fallback to basketItem.product if _id is undefined
+          const productId = basketItem.product?._id || basketItem.product;
+
+          const product = await Product.findById(productId);
+          if (!product) {
+            const productName = basketItem.product?.name || "Unknown";
+            throw new Error(`Sản phẩm "${productName}" không tồn tại`);
+          }
+          if (product.quantity < basketItem.quantity) {
+            throw new Error(
+              `Sản phẩm "${product.name}" trong giỏ quà không đủ số lượng`,
+            );
+          }
+        }
+
+        const itemTotal = (basketData.totalPrice || 0) * item.quantity;
+        totalAmount += itemTotal;
+
+        const newItem = {
+          name: basketData.name || "Giỏ quà tùy chỉnh",
+          price: basketData.totalPrice,
+          quantity: item.quantity,
+          imageUrl: basketData.packaging?.imageUrl || "",
+          isCustomBasket: true,
+          basketDetails: {
+            packaging: {
+              name: basketData.packaging?.name,
+              price: basketData.packaging?.price,
+            },
+            items: basketData.items.map((bi) => {
+              const productId = bi.product?._id || bi.product;
+              const productName = bi.product?.name || "Product";
+              return {
+                productId: productId,
+                name: productName,
+                quantity: bi.quantity,
+                price: bi.priceAtTime,
+              };
+            }),
+          },
+        };
+        processedItems.push(newItem);
+      } else {
+        // Regular product
+        // Mongoose might fail if item.product is a custom-local string but it bypasses the if condition
+        // We added the isCustomId check above, so it should be fine.
+        const product = await Product.findById(item.product);
+        if (!product) {
+          throw new Error(`Không tìm thấy sản phẩm có ID: ${item.product}`);
+        }
+
+        // Kiểm tra số lượng tồn kho
+        if (product.quantity < item.quantity) {
+          throw new Error(
+            `Sản phẩm "${product.name}" không đủ số lượng. Còn lại: ${product.quantity}`,
+          );
+        }
+
+        // Tính giá (ưu tiên discountPrice)
+        const price = product.discountPrice || product.price;
+        const itemTotal = price * item.quantity;
+        totalAmount += itemTotal;
+
+        processedItems.push({
+          product: product._id,
+          name: product.name,
+          price: price,
+          quantity: item.quantity,
+          imageUrl: product.imageUrl || "",
+        });
       }
-
-      // Kiểm tra số lượng tồn kho
-      if (product.quantity < item.quantity) {
-        throw new Error(
-          `Sản phẩm "${product.name}" không đủ số lượng. Còn lại: ${product.quantity}`,
-        );
-      }
-
-      // Tính giá (ưu tiên discountPrice)
-      const price = product.discountPrice || product.price;
-      const itemTotal = price * item.quantity;
-      totalAmount += itemTotal;
-
-      processedItems.push({
-        product: product._id,
-        name: product.name,
-        price: price,
-        quantity: item.quantity,
-        imageUrl: product.imageUrl || "", // Thêm hình ảnh sản phẩm
-      });
     }
 
     return { processedItems, totalAmount };
@@ -172,9 +236,19 @@ class OrderService {
   async updateProductStock(cartItems) {
     try {
       for (const item of cartItems) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { quantity: -item.quantity },
-        });
+        if (item.isCustomBasket && item.basketDetails) {
+          // Update stock for all items in custom basket
+          for (const basketItem of item.basketDetails.items) {
+            await Product.findByIdAndUpdate(basketItem.productId, {
+              $inc: { quantity: -(basketItem.quantity * item.quantity) },
+            });
+          }
+        } else if (item.product) {
+          // Regular product
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { quantity: -item.quantity },
+          });
+        }
       }
     } catch (error) {
       throw new Error(`Lỗi khi cập nhật tồn kho: ${error.message}`);
@@ -187,9 +261,19 @@ class OrderService {
   async restoreProductStock(cartItems) {
     try {
       for (const item of cartItems) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { quantity: item.quantity },
-        });
+        if (item.isCustomBasket && item.basketDetails) {
+          // Restore stock for all items in custom basket
+          for (const basketItem of item.basketDetails.items) {
+            await Product.findByIdAndUpdate(basketItem.productId, {
+              $inc: { quantity: basketItem.quantity * item.quantity },
+            });
+          }
+        } else if (item.product) {
+          // Regular product
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { quantity: item.quantity },
+          });
+        }
       }
     } catch (error) {
       throw new Error(`Lỗi khi hoàn trả tồn kho: ${error.message}`);
@@ -209,6 +293,30 @@ class OrderService {
       const order = await Order.findById(orderId);
       if (!order) {
         throw new Error("Không tìm thấy đơn hàng");
+      }
+
+      // Prevent shipping if online payment (VNPay/MoMo) not completed
+      if (orderStatus === "shipped") {
+        const isOnlinePayment =
+          order.paymentMethod === "vnpay" || order.paymentMethod === "momo";
+        const isNotPaid = order.paymentStatus !== "paid";
+
+        if (isOnlinePayment && isNotPaid) {
+          const statusText =
+            order.paymentStatus === "failed"
+              ? "thanh toán thất bại"
+              : "chưa thanh toán";
+          throw new Error(
+            `Không thể chuyển sang trạng thái "Đang giao" vì đơn hàng ${statusText}. Vui lòng đợi khách thanh toán thành công.`,
+          );
+        }
+      }
+
+      // Only allow delivered status if current status is shipped (customer confirmation only)
+      if (orderStatus === "delivered" && order.orderStatus !== "shipped") {
+        throw new Error(
+          'Chỉ có thể chuyển sang trạng thái "Hoàn thành" khi đơn hàng đang ở trạng thái "Đang giao".',
+        );
       }
 
       // Nếu hủy đơn, hoàn trả tồn kho
