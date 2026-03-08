@@ -259,7 +259,7 @@ const OrderManagement = () => {
                                 {ORDER_STATUS[st.next]?.label}
                               </button>
                             )}
-                            {!["delivered", "cancelled"].includes(
+                            {!["delivered", "cancelled", "return_requested", "returned"].includes(
                               o.orderStatus,
                             ) && (
                               <button
@@ -400,24 +400,42 @@ const OrderManagement = () => {
           </div>
 
           <div className="timeline">
-            {["processing", "shipped", "delivered"].map((s, i, arr) => {
-              const steps = ["processing", "shipped", "delivered"];
-              const curIdx = steps.indexOf(detail.orderStatus);
-              const done = detail.orderStatus !== "cancelled" && i <= curIdx;
+            {["processing", "shipped", "delivered", "return_requested", "returned"].map((s, i, arr) => {
+              if (
+                detail.orderStatus !== "return_requested" &&
+                detail.orderStatus !== "returned" &&
+                (s === "return_requested" || s === "returned")
+              ) {
+                return null;
+              }
+
+              const steps =
+                detail.orderStatus === "return_requested" ||
+                detail.orderStatus === "returned"
+                  ? ["processing", "shipped", "delivered", "return_requested", "returned"]
+                  : ["processing", "shipped", "delivered"];
+              
+              const currentArr = steps;
+              const globalIdx = currentArr.indexOf(s);
+              if (globalIdx === -1) return null;
+
+              const curIdx = currentArr.indexOf(detail.orderStatus);
+              const done = detail.orderStatus !== "cancelled" && globalIdx <= curIdx;
               const c = ORDER_STATUS[s];
+
               return (
                 <div key={s} className="timeline-step">
                   <div className="timeline-dot-wrap">
                     <div className={`timeline-dot${done ? " done" : ""}`}>
-                      {done ? "✓" : i + 1}
+                      {done ? "✓" : globalIdx + 1}
                     </div>
                     <div className={`timeline-label${done ? " done" : ""}`}>
-                      {c.label}
+                      {c?.label || s}
                     </div>
                   </div>
-                  {i < arr.length - 1 && (
+                  {globalIdx < currentArr.length - 1 && (
                     <div
-                      className={`timeline-line${done && i < curIdx ? " done" : ""}`}
+                      className={`timeline-line${done && globalIdx < curIdx ? " done" : ""}`}
                     />
                   )}
                 </div>
@@ -444,7 +462,7 @@ const OrderManagement = () => {
                 )}
               </button>
             )}
-            {!["delivered", "cancelled"].includes(detail.orderStatus) && (
+            {!["delivered", "cancelled", "return_requested", "returned"].includes(detail.orderStatus) && (
               <button
                 className="btn-icon-red"
                 style={{ padding: "9px 18px" }}
