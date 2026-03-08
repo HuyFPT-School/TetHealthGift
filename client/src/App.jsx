@@ -32,6 +32,7 @@ import PaymentResultPage from "./pages/CartManagement/PaymentResultPage";
 import OrderTrackingPage from "./pages/CartManagement/OrderTrackingPage";
 import BlogPage from "./pages/BlogPage/BlogPage";
 import BlogDetail from "./components/BlogDetail/BlogDetail";
+import CustomBasketBuilder from "./pages/CustomBasketBuilder/CustomBasketBuilder";
 
 /* ── Loading ── */
 function AuthLoading() {
@@ -142,8 +143,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/qua-tet" element={<ProductListingPage />} />
           <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
-          <Route path="/blog"        element={<BlogPage />} />
-          <Route path="/blog/:id"    element={<BlogDetail />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:id" element={<BlogDetail />} />
+          <Route path="/custom-basket" element={<CustomBasketBuilder />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<PayMoneyPage />} />
@@ -183,9 +185,9 @@ function App() {
         <Route path="/verify-email" element={<VerifyEmailOTP />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <ToastContainer 
-        position="bottom-right" 
-        autoClose={2500} 
+      <ToastContainer
+        position="bottom-right"
+        autoClose={2500}
         hideProgressBar={false}
         newestOnTop={true}
         closeOnClick

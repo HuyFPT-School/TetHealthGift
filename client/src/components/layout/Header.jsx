@@ -10,6 +10,7 @@ import {
   User,
   ChevronDown,
   LogOut,
+  PackagePlus,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { getCart } from "../../services/cartService";
@@ -44,10 +45,10 @@ export default function Header() {
         console.error("Failed to fetch cart:", error);
       }
     };
-    
+
     fetchCart();
     window.addEventListener("cartUpdated", fetchCart);
-    
+
     return () => {
       window.removeEventListener("cartUpdated", fetchCart);
     };
@@ -69,6 +70,11 @@ export default function Header() {
   const navItems = [
     { label: "Trang chủ", icon: <Home size={16} />, to: "/" },
     { label: "Quà tết", icon: <Gift size={16} />, to: "/qua-tet" },
+    {
+      label: "Tạo giỏ quà",
+      icon: <PackagePlus size={16} />,
+      to: "/custom-basket",
+    },
     { label: "Blog", icon: <BookOpen size={16} />, to: "/blog" },
   ];
 
@@ -445,7 +451,7 @@ export default function Header() {
             onMouseLeave={() => {
               cartDropdownTimeout.current = setTimeout(
                 () => setShowCartDropdown(false),
-                200
+                200,
               );
             }}
           >
@@ -529,8 +535,7 @@ export default function Header() {
                       {cartItems.slice(0, 5).map((item) => {
                         const product = item.product;
                         if (!product) return null;
-                        const price =
-                          product.discountPrice || product.price;
+                        const price = product.discountPrice || product.price;
                         return (
                           <div
                             key={product._id}
@@ -550,8 +555,7 @@ export default function Header() {
                               (e.currentTarget.style.background = "#FFF8F0")
                             }
                             onMouseLeave={(e) =>
-                              (e.currentTarget.style.background =
-                                "transparent")
+                              (e.currentTarget.style.background = "transparent")
                             }
                           >
                             <img
