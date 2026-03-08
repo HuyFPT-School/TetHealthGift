@@ -193,11 +193,12 @@ export default function ProductDetailPage() {
 
     try {
       addToCart(product, quantity);
-      
+
       setAdded(true);
       toast.success("Đã thêm vào giỏ hàng thành công!");
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
+      console.log("Error: ", error)
       toast.error("Không thể thêm vào giỏ hàng");
     }
   };
@@ -413,7 +414,8 @@ export default function ProductDetailPage() {
               }}
             >
               {product.discountPrice &&
-                product.discountPrice < product.price && (
+              product.discountPrice < product.price ? (
+                <>
                   <div
                     style={{
                       fontSize: 14,
@@ -422,12 +424,21 @@ export default function ProductDetailPage() {
                       marginBottom: 4,
                     }}
                   >
+                    {formatPrice(product.price)}
+                  </div>
+                  <div
+                    style={{ fontSize: 28, fontWeight: 800, color: "#c0392b" }}
+                  >
                     {formatPrice(product.discountPrice)}
                   </div>
-                )}
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#c0392b" }}>
-                {formatPrice(product.price)}
-              </div>
+                </>
+              ) : (
+                <div
+                  style={{ fontSize: 28, fontWeight: 800, color: "#c0392b" }}
+                >
+                  {formatPrice(product.price)}
+                </div>
+              )}
               <div
                 style={{
                   fontSize: 12,
