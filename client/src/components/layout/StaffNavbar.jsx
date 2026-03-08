@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { ShoppingCart, Star, Tag } from "lucide-react";
+import { ShoppingCart, Star, Tag as TagIcon } from "lucide-react";
 
 export default function StaffNavbar() {
   const location = useLocation();
@@ -13,21 +13,9 @@ export default function StaffNavbar() {
   };
 
   const navItems = [
-    {
-      path: "/staff/orders",
-      icon: <ShoppingCart size={16} strokeWidth={1.75} />,
-      label: "Quản lý đơn hàng",
-    },
-    {
-      path: "/staff/reviews",
-      icon: <Star size={16} strokeWidth={1.75} />,
-      label: "Quản lý đánh giá",
-    },
-    {
-      path: "/staff/coupons",
-      icon: <Tag size={16} strokeWidth={1.75} />,
-      label: "Quản lý mã giảm giá",
-    },
+    { path: "/staff/orders",   icon: <ShoppingCart size={16} strokeWidth={1.75} />, label: "Quản lý đơn hàng"     },
+    { path: "/staff/reviews",  icon: <Star         size={16} strokeWidth={1.75} />, label: "Quản lý đánh giá"     },
+    { path: "/staff/promotions",  icon: <TagIcon          size={16} strokeWidth={1.75} />, label: "Quản lý khuyến mãi"  },
   ];
 
   return (
@@ -49,23 +37,10 @@ export default function StaffNavbar() {
       >
         {/* Brand */}
         <div>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#fff",
-              lineHeight: 1.2,
-            }}
-          >
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
             Staff Dashboard
           </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: "rgba(255,255,255,0.7)",
-              marginTop: 2,
-            }}
-          >
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
             Quản lý hệ thống Tết Health Gift
           </div>
         </div>
@@ -85,9 +60,7 @@ export default function StaffNavbar() {
             }}
           >
             <span>👤</span>
-            <span>
-              {user?.fullname || user?.name || user?.email || "Staff"}
-            </span>
+            <span>{user?.fullname || user?.name || user?.email || "Staff"}</span>
             <span
               style={{
                 fontSize: 11,
@@ -113,12 +86,8 @@ export default function StaffNavbar() {
               cursor: "pointer",
               fontFamily: "inherit",
             }}
-            onMouseOver={(e) =>
-              (e.currentTarget.style.background = "rgba(255,255,255,0.25)")
-            }
-            onMouseOut={(e) =>
-              (e.currentTarget.style.background = "rgba(255,255,255,0.15)")
-            }
+            onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
+            onMouseOut={e  => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
           >
             Đăng xuất
           </button>
@@ -142,19 +111,12 @@ export default function StaffNavbar() {
                 textDecoration: "none",
                 fontSize: 14,
                 fontWeight: isActive ? 700 : 500,
-                borderBottom: isActive
-                  ? "3px solid #fff"
-                  : "3px solid transparent",
+                borderBottom: isActive ? "3px solid #fff" : "3px solid transparent",
                 transition: "all 0.2s",
                 whiteSpace: "nowrap",
               }}
-              onMouseOver={(e) => {
-                if (!isActive) e.currentTarget.style.color = "#fff";
-              }}
-              onMouseOut={(e) => {
-                if (!isActive)
-                  e.currentTarget.style.color = "rgba(255,255,255,0.7)";
-              }}
+              onMouseOver={e => { if (!isActive) e.currentTarget.style.color = "#fff"; }}
+              onMouseOut={e  => { if (!isActive) e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
             >
               {item.icon}
               <span>{item.label}</span>
