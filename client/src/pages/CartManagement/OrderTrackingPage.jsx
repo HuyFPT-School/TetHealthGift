@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import axiosInstance from "../../lib/axios";
 import { formatPrice } from "../../services/productService";
+import { addToCart } from "../../services/cartService";
 import { toast } from "react-toastify";
 import {
   Package,
@@ -145,6 +146,7 @@ function StatusTimeline({ status }) {
 }
 
 function OrderCard({ order, onRefresh }) {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const statusConf =
@@ -152,9 +154,9 @@ function OrderCard({ order, onRefresh }) {
   const paymentConf =
     PAYMENT_STATUS[order.paymentStatus] || PAYMENT_STATUS.pending;
 
-  // Check if can retry payment (pending payment for vnpay/momo)
+  // Check if can retry payment (failed payment for vnpay/momo)
   const canRetryPayment =
-    order.paymentStatus === "pending" &&
+    order.paymentStatus === "failed" &&
     (order.paymentMethod === "vnpay" || order.paymentMethod === "momo");
 
   // Check if can cancel order (not shipped yet)
@@ -162,6 +164,26 @@ function OrderCard({ order, onRefresh }) {
     order.orderStatus !== "shipped" &&
     order.orderStatus !== "delivered" &&
     order.orderStatus !== "cancelled";
+
+  // Check if can repurchase (order cancelled or delivered)
+  const canRepurchase = 
+    order.orderStatus === "cancelled" || order.orderStatus === "delivered";
+
+  const handleRepurchase = () => {
+    order.cartItems.forEach((item) => {
+      const productForCart = {
+        _id: item.product?._id || item.product,
+        name: item.name,
+        price: item.price,
+        discountPrice: item.price,
+        imageUrl: item.imageUrl || item.product?.images?.[0] || item.product?.imageUrl,
+        quantity: 999, // fallback for max stock
+      };
+      addToCart(productForCart, item.quantity);
+    });
+    toast.success("Đã thêm các sản phẩm vào giỏ hàng");
+    navigate("/cart");
+  };
 
   const handleRetryPayment = async () => {
     try {
@@ -473,7 +495,7 @@ function OrderCard({ order, onRefresh }) {
           </div>
 
           {/* Action Buttons */}
-          {(canRetryPayment || canCancel) && (
+          {(canRetryPayment || canCancel || canRepurchase) && (
             <div
               style={{
                 marginTop: "16px",
@@ -482,7 +504,29 @@ function OrderCard({ order, onRefresh }) {
                 justifyContent: "flex-end",
               }}
             >
-              {canRetryPayment && (
+              {canRepurchase && (
+                <button
+                  onClick={handleRepurchase}
+                  disabled={loading}
+                  style={{
+                    padding: "10px 20px",
+                    background: "linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  Mua lại
+                </button>
+              )}
+              {canRetryPayment && !canRepurchase && (
                 <button
                   onClick={handleRetryPayment}
                   disabled={loading}

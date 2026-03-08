@@ -11,7 +11,7 @@ export default function ProductCard({ product }) {
 
   const hasDiscount =
     product.discountPrice && product.discountPrice < product.price;
-  
+
   const inStock = product.quantity > 0;
 
   const formatPrice = (price) => {
@@ -51,6 +51,7 @@ export default function ProductCard({ product }) {
       toast.success("Đã thêm vào giỏ hàng thành công!");
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
+      console.log("Error: ", error);
       toast.error("Không thể thêm vào giỏ hàng");
     }
   };
@@ -159,28 +160,41 @@ export default function ProductCard({ product }) {
 
         {/* Price */}
         <div style={{ marginBottom: "14px" }}>
-          {hasDiscount && (
+          {hasDiscount ? (
+            <>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "#aaa",
+                  margin: "0 0 2px",
+                  textDecoration: "line-through",
+                }}
+              >
+                {formatPrice(product.price)}
+              </p>
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "700",
+                  color: "#e74c3c",
+                  margin: 0,
+                }}
+              >
+                {formatPrice(product.discountPrice)}
+              </p>
+            </>
+          ) : (
             <p
               style={{
-                fontSize: "13px",
-                color: "#aaa",
-                margin: "0 0 2px",
-                textDecoration: "line-through",
+                fontSize: "18px",
+                fontWeight: "700",
+                color: "#e74c3c",
+                margin: 0,
               }}
             >
-              {formatPrice(product.discountPrice)}
+              {formatPrice(product.price)}
             </p>
           )}
-          <p
-            style={{
-              fontSize: "18px",
-              fontWeight: "700",
-              color: "#e74c3c",
-              margin: 0,
-            }}
-          >
-            {formatPrice(product.price)}
-          </p>
         </div>
 
         {/* Tags */}
