@@ -285,7 +285,7 @@ class OrderService {
    */
   async updateOrderStatus(orderId, orderStatus) {
     try {
-      const validStatuses = ["processing", "shipped", "delivered", "cancelled"];
+      const validStatuses = ["processing", "shipped", "delivered", "cancelled", "return_requested", "returned"];
       if (!validStatuses.includes(orderStatus)) {
         throw new Error("Trạng thái đơn hàng không hợp lệ");
       }
@@ -319,9 +319,15 @@ class OrderService {
         );
       }
 
-      // Nếu hủy đơn, hoàn trả tồn kho
-      if (orderStatus === "cancelled" && order.orderStatus !== "cancelled") {
+      // Nếu hủy đơn hoặc trả hàng, hoàn trả tồn kho
+      if ((orderStatus === "cancelled" || orderStatus === "returned") && 
+          (order.orderStatus !== "cancelled" && order.orderStatus !== "returned")) {
         await this.restoreProductStock(order.cartItems);
+      }
+
+      // Cập nhật trạng thái thanh toán thành đã thanh toán khi giao hàng thành công
+      if (orderStatus === "delivered" && order.paymentStatus !== "paid") {
+        order.paymentStatus = "paid";
       }
 
       order.orderStatus = orderStatus;

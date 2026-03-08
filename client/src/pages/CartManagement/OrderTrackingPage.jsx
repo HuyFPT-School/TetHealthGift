@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  RotateCcw,
 } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -26,6 +27,8 @@ const STATUS_CONFIG = {
     step: 3,
   },
   cancelled: { label: "Đã hủy", color: "#F44336", icon: XCircle, step: 0 },
+  return_requested: { label: "Yêu cầu trả hàng", color: "#FF9800", icon: RotateCcw, step: 0 },
+  returned: { label: "Đã trả hàng", color: "#9E9E9E", icon: RotateCcw, step: 0 },
 };
 
 const PAYMENT_STATUS = {
@@ -54,6 +57,24 @@ function StatusTimeline({ status }) {
         <XCircle size={22} style={{ color: "#F44336" }} />
         <span style={{ color: "#F44336", fontWeight: "600", fontSize: "14px" }}>
           Đơn hàng đã bị hủy
+        </span>
+      </div>
+    );
+  }
+
+  if (status === "return_requested" || status === "returned") {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "12px 0",
+        }}
+      >
+        <RotateCcw size={22} style={{ color: status === "returned" ? "#9E9E9E" : "#FF9800" }} />
+        <span style={{ color: status === "returned" ? "#9E9E9E" : "#FF9800", fontWeight: "600", fontSize: "14px" }}>
+          {status === "return_requested" ? "Đơn hàng đang yêu cầu trả lại" : "Đơn hàng đã được trả lại"}
         </span>
       </div>
     );
@@ -169,14 +190,19 @@ function OrderCard({ order, onRefresh }) {
     order.orderStatus !== "shipped" &&
     order.orderStatus !== "delivered" &&
     order.orderStatus !== "cancelled" &&
+    order.orderStatus !== "return_requested" &&
+    order.orderStatus !== "returned" &&
     order.paymentStatus !== "paid";
 
-  // Check if can repurchase (order cancelled or delivered)
+  // Check if can repurchase (order cancelled or delivered or returned)
   const canRepurchase =
-    order.orderStatus === "cancelled" || order.orderStatus === "delivered";
+    order.orderStatus === "cancelled" || order.orderStatus === "delivered" || order.orderStatus === "returned";
 
   // Check if can confirm delivered (order is shipped)
   const canConfirmDelivered = order.orderStatus === "shipped";
+
+  // Check if can return order (order is delivered)
+  const canReturnOrder = order.orderStatus === "delivered";
 
   const handleRepurchase = () => {
     order.cartItems.forEach((item) => {
@@ -284,6 +310,28 @@ function OrderCard({ order, onRefresh }) {
       toast.error(
         error.response?.data?.message ||
           "Không thể xác nhận đơn hàng. Vui lòng thử lại.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReturnOrder = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn trả lại đơn hàng này?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axiosInstance.patch(`/api/orders/${order._id}/status`, {
+        orderStatus: "return_requested",
+      });
+      toast.success("Yêu cầu trả hàng thành công!");
+      onRefresh(); // Refresh the order list
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Không thể yêu cầu trả hàng. Vui lòng thử lại.",
       );
     } finally {
       setLoading(false);
@@ -557,6 +605,7 @@ function OrderCard({ order, onRefresh }) {
             canRetryPayment ||
             canCancel ||
             canConfirmDelivered ||
+            canReturnOrder ||
             canRepurchase) && (
             <div
               style={{
@@ -677,6 +726,25 @@ function OrderCard({ order, onRefresh }) {
                   {loading ? "Đang xử lý..." : "Đã nhận hàng"}
                 </button>
               )}
+              {canReturnOrder && (
+                <button
+                  onClick={handleReturnOrder}
+                  disabled={loading}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#fff",
+                    color: "#FF9800",
+                    border: "2px solid #FF9800",
+                    borderRadius: "8px",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                >
+                  {loading ? "Đang xử lý..." : "Trả hàng"}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -721,6 +789,8 @@ export default function OrderTrackingPage() {
     { key: "shipped", label: "Đang giao" },
     { key: "delivered", label: "Đã giao" },
     { key: "cancelled", label: "Đã hủy" },
+    { key: "return_requested", label: "Yêu cầu trả hàng" },
+    { key: "returned", label: "Đã trả hàng" },
   ];
 
   return (

@@ -78,6 +78,8 @@ export const ORDER_STATUS = {
     next: null,
   },
   cancelled: { label: "Đã huỷ", color: "#991B1B", bg: "#FEE2E2", next: null },
+  return_requested: { label: "Yêu cầu trả hàng", color: "#92400E", bg: "#FEF3C7", next: "returned" },
+  returned: { label: "Đã trả hàng", color: "#4B5563", bg: "#F3F4F6", next: null },
 };
 
 export const StatusBadge = ({ status }) => {
