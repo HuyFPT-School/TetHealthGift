@@ -32,6 +32,7 @@ import PaymentResultPage from "./pages/CartManagement/PaymentResultPage";
 import OrderTrackingPage from "./pages/CartManagement/OrderTrackingPage";
 import BlogPage from "./pages/BlogPage/BlogPage";
 import BlogDetail from "./components/BlogDetail/BlogDetail";
+import PromotionManagement from "./pages/PromotionManagement/PromotionManagement";
 import CustomBasketBuilder from "./pages/CustomBasketBuilder/CustomBasketBuilder";
 import PackagingManagement from "./pages/PackagingManagement/PackagingManagement";
 
@@ -173,10 +174,7 @@ function App() {
               path="/staff/reviews"
               element={<ComingSoon title="Quản lý đánh giá" />}
             />
-            <Route
-              path="/staff/coupons"
-              element={<ComingSoon title="Quản lý mã giảm giá" />}
-            />
+            <Route path="/staff/promotions" element={<PromotionManagement />} />
           </Route>
         </Route>
 
