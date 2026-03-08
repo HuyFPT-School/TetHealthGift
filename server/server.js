@@ -15,6 +15,7 @@ const UploadRoute = require("./routes/UploadRoute");
 const PaymentRoutes = require("./routes/PaymentRoutes");
 const WishlistRoute = require("./routes/WishlistRoute");
 const AnalyticsRoute = require("./routes/AnalyticsRoute");
+const CustomBasketRoutes = require("./routes/CustomBasketRoutes");
 
 const app = express();
 database.connect();
@@ -57,6 +58,7 @@ app.use("/api/upload", UploadRoute);
 app.use("/api/payment", PaymentRoutes);
 app.use("/api/wishlist", WishlistRoute);
 app.use("/api/analytics", AnalyticsRoute);
+app.use("/api/custom-baskets", CustomBasketRoutes);
 
 // Server setup
 const PORT = process.env.PORT || 3000;

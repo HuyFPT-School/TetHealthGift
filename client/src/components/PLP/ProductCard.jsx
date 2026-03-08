@@ -96,7 +96,7 @@ export default function ProductCard({ product, index = 0 }) {
       setAdded(true);
       toast.success("Đã thêm vào giỏ hàng thành công!");
       setTimeout(() => setAdded(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error("Không thể thêm vào giỏ hàng");
     }
   };
@@ -260,28 +260,41 @@ export default function ProductCard({ product, index = 0 }) {
 
         {/* Giá */}
         <div style={{ marginTop: "auto", marginBottom: 10 }}>
-          {product.discountPrice && product.discountPrice < product.price && (
+          {product.discountPrice && product.discountPrice < product.price ? (
+            <>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "#aaa",
+                  margin: "0 0 2px",
+                  textDecoration: "line-through",
+                }}
+              >
+                {formatPrice(product.price)}
+              </p>
+              <p
+                style={{
+                  fontSize: 17,
+                  fontWeight: 800,
+                  color: "#c0392b",
+                  margin: 0,
+                }}
+              >
+                {formatPrice(product.discountPrice)}
+              </p>
+            </>
+          ) : (
             <p
               style={{
-                fontSize: 12,
-                color: "#aaa",
-                margin: "0 0 2px",
-                textDecoration: "line-through",
+                fontSize: 17,
+                fontWeight: 800,
+                color: "#c0392b",
+                margin: 0,
               }}
             >
-              {formatPrice(product.discountPrice)}
+              {formatPrice(product.price)}
             </p>
           )}
-          <p
-            style={{
-              fontSize: 17,
-              fontWeight: 800,
-              color: "#c0392b",
-              margin: 0,
-            }}
-          >
-            {formatPrice(product.price)}
-          </p>
         </div>
 
         {/* Tags */}

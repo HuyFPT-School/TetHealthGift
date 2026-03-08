@@ -26,24 +26,38 @@ export const saveCart = (cartItems) => {
 export const addToCart = (product, quantity = 1) => {
   const cartItems = getCart();
   const existingItemIndex = cartItems.findIndex(
-    (item) => item.product._id === product._id
+    (item) => item.product._id === product._id,
   );
 
   if (existingItemIndex > -1) {
-    cartItems[existingItemIndex].quantity += quantity;
+    // Custom baskets can't be duplicated - skip increment
+    if (!product.isCustomBasket) {
+      cartItems[existingItemIndex].quantity += quantity;
+    }
   } else {
-    cartItems.push({
+    const cartItem = {
       product: {
         _id: product._id,
         name: product.name,
         price: product.price,
         discountPrice: product.discountPrice,
-        imageUrl: Array.isArray(product.imageUrl) ? product.imageUrl[0] : product.imageUrl,
+        imageUrl: Array.isArray(product.imageUrl)
+          ? product.imageUrl[0]
+          : product.imageUrl,
         quantity: product.quantity, // Max stock
       },
       quantity: quantity,
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    // Add custom basket metadata (full basket data instead of just basketId)
+    if (product.isCustomBasket) {
+      cartItem.isCustomBasket = true;
+      cartItem.basketData = product.basketData; // ✅ Store full basket data
+      cartItem.product.isCustomBasket = true;
+    }
+
+    cartItems.push(cartItem);
   }
 
   saveCart(cartItems);
@@ -52,7 +66,7 @@ export const addToCart = (product, quantity = 1) => {
 export const updateCartQuantity = (productId, quantity) => {
   const cartItems = getCart();
   const existingItemIndex = cartItems.findIndex(
-    (item) => item.product._id === productId
+    (item) => item.product._id === productId,
   );
 
   if (existingItemIndex > -1) {

@@ -14,7 +14,27 @@ const orderSchema = new mongoose.Schema(
         name: { type: String, required: true },
         price: { type: Number, required: true },
         quantity: { type: Number, required: true },
-        imageUrl: { type: String }, // Hình ảnh sản phẩm
+        imageUrl: { type: String },
+        // Custom basket fields
+        isCustomBasket: { type: Boolean, default: false },
+        basketId: { type: mongoose.Schema.Types.ObjectId, ref: "CustomBasket" },
+        basketDetails: {
+          packaging: {
+            name: String,
+            price: Number,
+          },
+          items: [
+            {
+              productId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Product",
+              },
+              name: String,
+              quantity: Number,
+              price: Number,
+            },
+          ],
+        },
       },
     ],
 

@@ -33,6 +33,9 @@ import OrderTrackingPage from "./pages/CartManagement/OrderTrackingPage";
 import BlogPage from "./pages/BlogPage/BlogPage";
 import BlogDetail from "./components/BlogDetail/BlogDetail";
 import PromotionManagement from "./pages/PromotionManagement/PromotionManagement";
+import CustomBasketBuilder from "./pages/CustomBasketBuilder/CustomBasketBuilder";
+import PackagingManagement from "./pages/PackagingManagement/PackagingManagement";
+
 /* ── Loading ── */
 function AuthLoading() {
   return (
@@ -142,8 +145,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/qua-tet" element={<ProductListingPage />} />
           <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
-          <Route path="/blog"        element={<BlogPage />} />
-          <Route path="/blog/:id"    element={<BlogDetail />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:id" element={<BlogDetail />} />
+          <Route path="/custom-basket" element={<CustomBasketBuilder />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<PayMoneyPage />} />
@@ -156,6 +160,7 @@ function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin/analytics" element={<AnalyticsDashboard />} />
             <Route path="/admin/products" element={<ProductManagement />} />
+            <Route path="/admin/packaging" element={<PackagingManagement />} />
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/blogs" element={<BlogManagement />} />
           </Route>
@@ -180,9 +185,9 @@ function App() {
         <Route path="/verify-email" element={<VerifyEmailOTP />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <ToastContainer 
-        position="bottom-right" 
-        autoClose={2500} 
+      <ToastContainer
+        position="bottom-right"
+        autoClose={2500}
         hideProgressBar={false}
         newestOnTop={true}
         closeOnClick

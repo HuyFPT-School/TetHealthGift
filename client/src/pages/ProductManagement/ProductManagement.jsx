@@ -24,6 +24,8 @@ const ProductManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [toast, setToast] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const blank = {
     name: "",
@@ -81,6 +83,7 @@ const ProductManagement = () => {
   const openAdd = () => {
     setForm(blank);
     setEditItem(null);
+    setImagePreview(null);
     setShowForm(true);
   };
   const openEdit = (p) => {
@@ -92,6 +95,7 @@ const ProductManagement = () => {
       quantity: String(p.quantity || ""),
       imageUrl: p.imageUrl || "",
     });
+    setImagePreview(p.imageUrl || null);
     setEditItem(p);
     setShowForm(true);
   };
@@ -133,6 +137,51 @@ const ProductManagement = () => {
     } catch (e) {
       showT(e.response?.data?.message || e.message, "error");
     }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      showT("Vui lòng chọn file ảnh", "error");
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showT("Kích thước ảnh không được vượt quá 5MB", "error");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await axiosInstance.post("/api/upload/product", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const imageUrl = res.data?.data?.imageUrl;
+      if (imageUrl) {
+        setForm((f) => ({ ...f, imageUrl }));
+        setImagePreview(imageUrl);
+        showT("Upload ảnh thành công", "ok");
+      }
+    } catch (e) {
+      showT(e.response?.data?.message || "Lỗi khi upload ảnh", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const clearImage = () => {
+    setForm((f) => ({ ...f, imageUrl: "" }));
+    setImagePreview(null);
   };
 
   const pageCount = Math.max(1, Math.ceil(total / LIMIT));
@@ -360,16 +409,105 @@ const ProductManagement = () => {
               placeholder="Mô tả sản phẩm..."
             />
           </div>
+
           <div className="field">
-            <label>Ảnh URL</label>
-            <input
-              className="inp"
-              value={form.imageUrl}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, imageUrl: e.target.value }))
-              }
-              placeholder="https://example.com/img.jpg"
-            />
+            <label>Ảnh sản phẩm</label>
+
+            {/* Image preview */}
+            {(imagePreview || form.imageUrl) && (
+              <div style={{ marginBottom: 12, position: "relative" }}>
+                <img
+                  src={imagePreview || form.imageUrl}
+                  alt="Preview"
+                  style={{
+                    width: "100%",
+                    maxHeight: 240,
+                    objectFit: "cover",
+                    borderRadius: 8,
+                    border: "1px solid #e0e0e0",
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    background: "rgba(0,0,0,0.6)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "4px 10px",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  ✕ Xoá
+                </button>
+              </div>
+            )}
+
+            {/* Upload button */}
+            <div style={{ marginBottom: 10 }}>
+              <label
+                htmlFor="product-image-upload"
+                style={{
+                  display: "inline-block",
+                  padding: "10px 18px",
+                  background: uploading ? "#ccc" : "#4CAF50",
+                  color: "#fff",
+                  borderRadius: 6,
+                  cursor: uploading ? "not-allowed" : "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  transition: "background 0.2s",
+                }}
+              >
+                {uploading ? "Đang upload..." : "📁 Chọn ảnh từ máy"}
+              </label>
+              <input
+                id="product-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploading}
+                style={{ display: "none" }}
+              />
+            </div>
+
+            {/* Or URL input */}
+            <div
+              style={{
+                borderTop: "1px solid #e0e0e0",
+                paddingTop: 10,
+                marginTop: 4,
+              }}
+            >
+              <label
+                style={{
+                  fontSize: 13,
+                  color: "#666",
+                  marginBottom: 6,
+                  display: "block",
+                }}
+              >
+                Hoặc nhập URL ảnh
+              </label>
+              <input
+                className="inp"
+                value={form.imageUrl}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, imageUrl: e.target.value }));
+                  setImagePreview(e.target.value);
+                }}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
           </div>
           <div className="modal-footer">
             <button className="btn-outline" onClick={() => setShowForm(false)}>

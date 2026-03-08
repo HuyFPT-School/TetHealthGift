@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { addToCart } from "../../services/cartService";
+import { formatPrice } from "../../services/productService";
 import { toast } from "react-toastify";
 
 export default function ProductCard({ product }) {
@@ -11,13 +12,8 @@ export default function ProductCard({ product }) {
 
   const hasDiscount =
     product.discountPrice && product.discountPrice < product.price;
-  
-  const inStock = product.quantity > 0;
 
-  const formatPrice = (price) => {
-    if (typeof price === "number") return price.toLocaleString("vi-VN") + " đ";
-    return price;
-  };
+  const inStock = product.quantity > 0;
 
   // imageUrl là array từ BE → lấy phần tử đầu tiên
   const imageUrl = Array.isArray(product.imageUrl)
@@ -50,7 +46,7 @@ export default function ProductCard({ product }) {
       setAdded(true);
       toast.success("Đã thêm vào giỏ hàng thành công!");
       setTimeout(() => setAdded(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error("Không thể thêm vào giỏ hàng");
     }
   };
@@ -159,28 +155,41 @@ export default function ProductCard({ product }) {
 
         {/* Price */}
         <div style={{ marginBottom: "14px" }}>
-          {hasDiscount && (
+          {hasDiscount ? (
+            <>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "#aaa",
+                  margin: "0 0 2px",
+                  textDecoration: "line-through",
+                }}
+              >
+                {formatPrice(product.price)}
+              </p>
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "700",
+                  color: "#e74c3c",
+                  margin: 0,
+                }}
+              >
+                {formatPrice(product.discountPrice)}
+              </p>
+            </>
+          ) : (
             <p
               style={{
-                fontSize: "13px",
-                color: "#aaa",
-                margin: "0 0 2px",
-                textDecoration: "line-through",
+                fontSize: "18px",
+                fontWeight: "700",
+                color: "#e74c3c",
+                margin: 0,
               }}
             >
-              {formatPrice(product.discountPrice)}
+              {formatPrice(product.price)}
             </p>
           )}
-          <p
-            style={{
-              fontSize: "18px",
-              fontWeight: "700",
-              color: "#e74c3c",
-              margin: 0,
-            }}
-          >
-            {formatPrice(product.price)}
-          </p>
         </div>
 
         {/* Tags */}
