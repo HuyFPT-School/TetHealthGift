@@ -154,20 +154,29 @@ function OrderCard({ order, onRefresh }) {
   const paymentConf =
     PAYMENT_STATUS[order.paymentStatus] || PAYMENT_STATUS.pending;
 
+  // Check if can pay now (pending payment for vnpay/momo, first time)
+  const canPayNow =
+    order.paymentStatus === "pending" &&
+    (order.paymentMethod === "vnpay" || order.paymentMethod === "momo");
+
   // Check if can retry payment (failed payment for vnpay/momo)
   const canRetryPayment =
     order.paymentStatus === "failed" &&
     (order.paymentMethod === "vnpay" || order.paymentMethod === "momo");
 
-  // Check if can cancel order (not shipped yet)
+  // Check if can cancel order (not shipped yet and not paid)
   const canCancel =
     order.orderStatus !== "shipped" &&
     order.orderStatus !== "delivered" &&
-    order.orderStatus !== "cancelled";
+    order.orderStatus !== "cancelled" &&
+    order.paymentStatus !== "paid";
 
   // Check if can repurchase (order cancelled or delivered)
-  const canRepurchase = 
+  const canRepurchase =
     order.orderStatus === "cancelled" || order.orderStatus === "delivered";
+
+  // Check if can confirm delivered (order is shipped)
+  const canConfirmDelivered = order.orderStatus === "shipped";
 
   const handleRepurchase = () => {
     order.cartItems.forEach((item) => {
@@ -176,13 +185,40 @@ function OrderCard({ order, onRefresh }) {
         name: item.name,
         price: item.price,
         discountPrice: item.price,
-        imageUrl: item.imageUrl || item.product?.images?.[0] || item.product?.imageUrl,
+        imageUrl:
+          item.imageUrl || item.product?.images?.[0] || item.product?.imageUrl,
         quantity: 999, // fallback for max stock
       };
       addToCart(productForCart, item.quantity);
     });
     toast.success("Đã thêm các sản phẩm vào giỏ hàng");
     navigate("/cart");
+  };
+
+  const handlePayNow = async () => {
+    try {
+      setLoading(true);
+      const endpoint =
+        order.paymentMethod === "vnpay"
+          ? "/api/payment/vnpay/create"
+          : "/api/payment/momo/create";
+
+      const res = await axiosInstance.post(endpoint, {
+        orderId: order._id,
+        orderInfo: `Thanh toán đơn hàng #${order._id}`,
+      });
+
+      if (res.data.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Không thể tạo thanh toán. Vui lòng thử lại.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRetryPayment = async () => {
@@ -226,6 +262,28 @@ function OrderCard({ order, onRefresh }) {
       toast.error(
         error.response?.data?.message ||
           "Không thể hủy đơn hàng. Vui lòng thử lại.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmDelivered = async () => {
+    if (!window.confirm("Xác nhận bạn đã nhận được hàng?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axiosInstance.patch(`/api/orders/${order._id}/status`, {
+        orderStatus: "delivered",
+      });
+      toast.success("Đã xác nhận nhận hàng thành công!");
+      onRefresh(); // Refresh the order list
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Không thể xác nhận đơn hàng. Vui lòng thử lại.",
       );
     } finally {
       setLoading(false);
@@ -495,7 +553,11 @@ function OrderCard({ order, onRefresh }) {
           </div>
 
           {/* Action Buttons */}
-          {(canRetryPayment || canCancel || canRepurchase) && (
+          {(canPayNow ||
+            canRetryPayment ||
+            canCancel ||
+            canConfirmDelivered ||
+            canRepurchase) && (
             <div
               style={{
                 marginTop: "16px",
@@ -510,7 +572,8 @@ function OrderCard({ order, onRefresh }) {
                   disabled={loading}
                   style={{
                     padding: "10px 20px",
-                    background: "linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)",
+                    background:
+                      "linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)",
                     color: "#fff",
                     border: "none",
                     borderRadius: "8px",
@@ -526,6 +589,29 @@ function OrderCard({ order, onRefresh }) {
                   Mua lại
                 </button>
               )}
+              {canPayNow && !canRepurchase && (
+                <button
+                  onClick={handlePayNow}
+                  disabled={loading}
+                  style={{
+                    padding: "10px 20px",
+                    background:
+                      "linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  {loading ? "Đang xử lý..." : "Thanh toán"}
+                </button>
+              )}
               {canRetryPayment && !canRepurchase && (
                 <button
                   onClick={handleRetryPayment}
@@ -533,7 +619,7 @@ function OrderCard({ order, onRefresh }) {
                   style={{
                     padding: "10px 20px",
                     background:
-                      "linear-gradient(135deg, #2196F3 0%, #1976D2 100%)",
+                      "linear-gradient(135deg, #FF9800 0%, #F57C00 100%)",
                     color: "#fff",
                     border: "none",
                     borderRadius: "8px",
@@ -566,6 +652,29 @@ function OrderCard({ order, onRefresh }) {
                   }}
                 >
                   {loading ? "Đang hủy..." : "Hủy đơn hàng"}
+                </button>
+              )}
+              {canConfirmDelivered && (
+                <button
+                  onClick={handleConfirmDelivered}
+                  disabled={loading}
+                  style={{
+                    padding: "10px 20px",
+                    background:
+                      "linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  {loading ? "Đang xử lý..." : "Đã nhận hàng"}
                 </button>
               )}
             </div>

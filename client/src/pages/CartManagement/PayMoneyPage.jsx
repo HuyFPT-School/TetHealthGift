@@ -71,10 +71,22 @@ export default function PayMoneyPage() {
       return;
     }
 
-    const cartData = selectedItems.map((item) => ({
-      product: item.product?._id,
-      quantity: item.quantity || 1,
-    }));
+    const cartData = selectedItems.map((item) => {
+      const isCustomBasket = Boolean(item.isCustomBasket || item.product?.isCustomBasket || item.basketData);
+      
+      const payload = {
+        quantity: item.quantity || 1,
+        isCustomBasket,
+        basketData: item.basketData || item.product?.basketData || null,
+      };
+
+      // Only set productId if it's NOT a custom basket
+      if (!isCustomBasket) {
+         payload.product = item.product?._id;
+      }
+
+      return payload;
+    });
 
     try {
       setOrdering(true);

@@ -72,6 +72,28 @@ const OrderManagement = () => {
   }, [load]);
 
   const updateStatus = async (id, orderStatus) => {
+    // Prevent shipping if VNPay/MoMo payment not completed
+    if (orderStatus === "shipped") {
+      const order = orders.find((o) => o._id === id) || detail;
+      if (order) {
+        const isOnlinePayment =
+          order.paymentMethod === "vnpay" || order.paymentMethod === "momo";
+        const isNotPaid = order.paymentStatus !== "paid";
+
+        if (isOnlinePayment && isNotPaid) {
+          const statusText =
+            order.paymentStatus === "failed"
+              ? "thanh toán thất bại"
+              : "chưa thanh toán";
+          showT(
+            `Không thể chuyển sang "Đang giao" vì đơn hàng ${statusText}. Vui lòng đợi khách thanh toán thành công.`,
+            "error",
+          );
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     try {
       await axiosInstance.patch(`/api/orders/${id}/status`, { orderStatus });
