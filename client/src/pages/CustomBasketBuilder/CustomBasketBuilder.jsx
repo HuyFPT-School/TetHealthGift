@@ -1,24 +1,23 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getPackagingTypes } from "../../services/customBasketService";
 import {
-  getPackagingTypes,
-  createCustomBasket,
-  getCustomBasket,
-  addItemToBasket,
-  removeItemFromBasket,
-  updateBasketItemQuantity,
-  completeCustomBasket,
-  cancelCustomBasket,
+  getLocalBasket,
+  createLocalBasket,
+  addItemToLocalBasket,
+  removeItemFromLocalBasket,
+  updateLocalBasketItemQuantity,
+  completeLocalBasket,
+  clearLocalBasket,
   formatPrice,
-} from "../../services/customBasketService";
+} from "../../services/localBasketService";
 import { fetchProducts } from "../../services/productService";
 import { addToCart } from "../../services/cartService";
 import { toast } from "react-toastify";
-import "../CustomBasketBuilder/customBasketBuilder.css"; // Import CSS riêng cho trang này
+import "./CustomBasketBuilder.css";
 
 const CustomBasketBuilder = () => {
-  const { id } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
 
@@ -37,14 +36,20 @@ const CustomBasketBuilder = () => {
       return;
     }
 
-    if (id) {
-      loadExistingBasket();
+    // Load from localStorage if exists
+    const existingBasket = getLocalBasket();
+    if (existingBasket) {
+      setBasket(existingBasket);
+      setSelectedPackaging(existingBasket.packaging);
+      setBasketName(existingBasket.name || "Giỏ quà tùy chỉnh");
+      setStep(2);
     } else {
       loadPackagingTypes();
     }
+
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, token]);
+  }, [token]);
 
   const loadPackagingTypes = async () => {
     try {
@@ -54,23 +59,6 @@ const CustomBasketBuilder = () => {
     } catch (error) {
       console.error(error);
       toast.error("Không thể tải danh sách bao bì");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadExistingBasket = async () => {
-    try {
-      setLoading(true);
-      const response = await getCustomBasket(id);
-      setBasket(response.data);
-      setSelectedPackaging(response.data.packaging);
-      setBasketName(response.data.name || "Giỏ quà tùy chỉnh");
-      setStep(2);
-    } catch (error) {
-      console.error(error);
-      toast.error("Không thể tải giỏ quà");
-      navigate("/custom-basket");
     } finally {
       setLoading(false);
     }
@@ -86,41 +74,38 @@ const CustomBasketBuilder = () => {
     }
   };
 
-  const handleSelectPackaging = async (packaging) => {
+  const handleSelectPackaging = (packaging) => {
     try {
-      setLoading(true);
-      const response = await createCustomBasket(packaging._id);
-      setBasket(response.data);
+      const newBasket = createLocalBasket(packaging, basketName);
+      setBasket(newBasket);
       setSelectedPackaging(packaging);
       setStep(2);
       toast.success("Đã chọn bao bì thành công");
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Không thể tạo giỏ quà");
-    } finally {
-      setLoading(false);
+      toast.error("Không thể tạo giỏ quà");
     }
   };
 
-  const handleAddProduct = async (product) => {
+  const handleAddProduct = (product) => {
     if (!basket) return;
 
     try {
-      const response = await addItemToBasket(basket._id, product._id, 1);
-      setBasket(response.data);
+      const updatedBasket = addItemToLocalBasket(product, 1);
+      setBasket(updatedBasket);
       toast.success(`Đã thêm ${product.name}`);
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Không thể thêm sản phẩm");
+      toast.error(error.message || "Không thể thêm sản phẩm");
     }
   };
 
-  const handleRemoveProduct = async (productId) => {
+  const handleRemoveProduct = (productId) => {
     if (!basket) return;
 
     try {
-      const response = await removeItemFromBasket(basket._id, productId);
-      setBasket(response.data);
+      const updatedBasket = removeItemFromLocalBasket(productId);
+      setBasket(updatedBasket);
       toast.success("Đã xóa sản phẩm");
     } catch (error) {
       console.error(error);
@@ -128,73 +113,58 @@ const CustomBasketBuilder = () => {
     }
   };
 
-  const handleUpdateQuantity = async (productId, quantity) => {
+  const handleUpdateQuantity = (productId, quantity) => {
     if (!basket || quantity < 0) return;
 
     try {
-      const response = await updateBasketItemQuantity(
-        basket._id,
-        productId,
-        quantity,
-      );
-      setBasket(response.data);
+      const updatedBasket = updateLocalBasketItemQuantity(productId, quantity);
+      setBasket(updatedBasket);
     } catch (error) {
       console.error(error);
-      toast.error(
-        error.response?.data?.message || "Không thể cập nhật số lượng",
-      );
+      toast.error(error.message || "Không thể cập nhật số lượng");
     }
   };
 
-  const handleCompleteAndAddToCart = async () => {
+  const handleCompleteAndAddToCart = () => {
     if (!basket) return;
-
-    // Check minimum 3 items (BR-02)
-    const totalItems = basket.items.reduce(
-      (sum, item) => sum + item.quantity,
-      0,
-    );
-    if (totalItems < 3) {
-      toast.error("Giỏ quà phải có ít nhất 3 sản phẩm");
-      return;
-    }
 
     try {
       setLoading(true);
-      await completeCustomBasket(basket._id, basketName);
 
-      // Add to cart
+      // Complete basket (validates minimum 3 items)
+      const completedBasket = completeLocalBasket(basketName);
+
+      // Add to cart with full basket data (no basketId, send entire basket)
       const customProduct = {
-        _id: `custom-${basket._id}`,
+        _id: `custom-${completedBasket.id}`,
         name: basketName,
-        price: basket.totalPrice,
+        price: completedBasket.totalPrice,
+        discountPrice: null,
         imageUrl: selectedPackaging?.imageUrl || "",
-        quantity: 1,
+        quantity: 1, // Custom basket is always 1 unit
         isCustomBasket: true,
-        basketId: basket._id,
+        basketData: completedBasket, // ✅ Send full basket data instead of basketId
       };
 
       addToCart(customProduct, 1);
+
+      // Clear localStorage after adding to cart
+      clearLocalBasket();
+
       toast.success("Đã thêm giỏ quà vào giỏ hàng!");
       navigate("/cart");
     } catch (error) {
       console.error(error);
-      toast.error(
-        error.response?.data?.message || "Không thể hoàn thành giỏ quà",
-      );
+      toast.error(error.message || "Không thể hoàn thành giỏ quà");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = async () => {
+  const handleCancel = () => {
     if (basket) {
-      try {
-        await cancelCustomBasket(basket._id);
-        toast.info("Đã hủy giỏ quà");
-      } catch (error) {
-        console.error(error);
-      }
+      clearLocalBasket();
+      toast.info("Đã hủy giỏ quà");
     }
     navigate("/");
   };
