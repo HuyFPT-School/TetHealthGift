@@ -57,6 +57,10 @@ const orderSchema = new mongoose.Schema(
 
     totalAmount: { type: Number, required: true },
 
+    isInstallment: { type: Boolean, default: false },
+    depositAmount: { type: Number, default: 0 },
+    remainingBalance: { type: Number, default: 0 },
+
     paymentMethod: {
       type: String,
       enum: ["momo", "vnpay", "cod"],
@@ -65,7 +69,7 @@ const orderSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "deposited", "paid", "failed"],
       default: "pending",
     },
 

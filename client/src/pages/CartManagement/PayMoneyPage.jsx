@@ -27,7 +27,15 @@ export default function PayMoneyPage() {
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [isInstallment, setIsInstallment] = useState(false);
   const [ordering, setOrdering] = useState(false);
+
+  // Auto-switch away from COD if installment is selected
+  useEffect(() => {
+    if (isInstallment && paymentMethod === "cod") {
+      setPaymentMethod("vnpay");
+    }
+  }, [isInstallment, paymentMethod]);
 
   useEffect(() => {
     if (!user) {
@@ -98,6 +106,7 @@ export default function PayMoneyPage() {
         phone: phone.trim(),
         note: note.trim(),
         paymentMethod,
+        isInstallment,
       });
 
       const newOrder = orderRes.data.data;
@@ -394,7 +403,8 @@ export default function PayMoneyPage() {
                         : "1px solid #e0e0e0",
                     background:
                       paymentMethod === method.value ? "#FFF5E6" : "#fff",
-                    cursor: "pointer",
+                    cursor: (isInstallment && method.value === "cod") ? "not-allowed" : "pointer",
+                    opacity: (isInstallment && method.value === "cod") ? 0.5 : 1,
                     transition: "all 0.2s",
                   }}
                 >
@@ -403,6 +413,7 @@ export default function PayMoneyPage() {
                     name="paymentMethod"
                     value={method.value}
                     checked={paymentMethod === method.value}
+                    disabled={isInstallment && method.value === "cod"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     style={{ width: "18px", height: "18px", cursor: "pointer" }}
                   />
@@ -430,6 +441,43 @@ export default function PayMoneyPage() {
                 </label>
               ))}
             </div>
+
+            {totalAmount >= 3000000 && (
+              <div
+                style={{
+                  marginTop: "20px",
+                  padding: "16px",
+                  background: "#FFF",
+                  border: "1px dashed #C62828",
+                  borderRadius: "10px",
+                }}
+              >
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isInstallment}
+                    onChange={(e) => setIsInstallment(e.target.checked)}
+                    style={{ width: "20px", height: "20px", marginTop: "2px", cursor: "pointer", accentColor: "#C62828" }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: "700", fontSize: "15px", color: "#C62828" }}>
+                      Thanh toán đặt cọc 30% (Chỉ áp dụng thanh toán online)
+                    </div>
+                    <div style={{ fontSize: "13px", color: "#666", marginTop: "4px", lineHeight: "1.5" }}>
+                      Tổng giá trị đơn hàng vượt quá 3,000,000đ. Bạn có thể sử dụng chính sách cọc trước 30%.
+                      <br /><b>Lưu ý:</b> Số tiền còn lại sẽ được thanh toán sau trên hệ thống.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Product List */}
@@ -595,8 +643,38 @@ export default function PayMoneyPage() {
             }}
           >
             <span style={{ color: "#333" }}>Tổng tiền:</span>
-            <span style={{ color: "#C62828" }}>{formatPrice(totalAmount)}</span>
+            <span style={{ color: !isInstallment ? "#C62828" : "#888", textDecoration: isInstallment ? "line-through" : "none" }}>{formatPrice(totalAmount)}</span>
           </div>
+
+          {isInstallment && (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: "10px",
+                  fontSize: "18px",
+                  fontWeight: "700",
+                }}
+              >
+                <span style={{ color: "#333" }}>Số tiền cọc (30%):</span>
+                <span style={{ color: "#C62828" }}>{formatPrice(Math.round(totalAmount * 0.3))}</span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: "8px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  color: "#666",
+                }}
+              >
+                <span>Còn lại thanh toán sau:</span>
+                <span>{formatPrice(totalAmount - Math.round(totalAmount * 0.3))}</span>
+              </div>
+            </>
+          )}
 
           <button
             onClick={handleSubmitOrder}

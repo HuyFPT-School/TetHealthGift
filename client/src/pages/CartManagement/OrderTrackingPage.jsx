@@ -33,6 +33,7 @@ const STATUS_CONFIG = {
 
 const PAYMENT_STATUS = {
   pending: { label: "Chưa thanh toán", color: "#FF9800" },
+  deposited: { label: "Đã cọc 30%", color: "#2196F3" },
   paid: { label: "Đã thanh toán", color: "#4CAF50" },
   failed: { label: "Thanh toán thất bại", color: "#F44336" },
 };
@@ -178,6 +179,12 @@ function OrderCard({ order, onRefresh }) {
   // Check if can pay now (pending payment for vnpay/momo, first time)
   const canPayNow =
     order.paymentStatus === "pending" &&
+    (order.paymentMethod === "vnpay" || order.paymentMethod === "momo");
+
+  // Check if can pay remaining balance
+  const canPayRemaining =
+    order.paymentStatus === "deposited" &&
+    order.isInstallment && 
     (order.paymentMethod === "vnpay" || order.paymentMethod === "momo");
 
   // Check if can retry payment (failed payment for vnpay/momo)
@@ -592,12 +599,30 @@ function OrderCard({ order, onRefresh }) {
                 style={{
                   fontWeight: "700",
                   fontSize: "16px",
-                  color: "#C62828",
+                  color: order.isInstallment && order.paymentStatus === "deposited" ? "#888" : "#C62828",
+                  textDecoration: order.isInstallment && order.paymentStatus === "deposited" ? "line-through" : "none"
                 }}
               >
                 {formatPrice(order.totalAmount)}
               </span>
             </div>
+
+            {order.isInstallment && (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "13px" }}>
+                  <span style={{ color: "#888" }}>Đã cọc (30%):</span>
+                  <span style={{ fontWeight: "600", color: "#2196F3" }}>
+                    {formatPrice(order.depositAmount || Math.round(order.totalAmount * 0.3))}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "14px" }}>
+                   <span style={{ fontWeight: "600", color: "#333" }}>Còn lại thanh toán sau:</span>
+                   <span style={{ fontWeight: "700", color: "#C62828" }}>
+                     {formatPrice(order.remainingBalance || (order.totalAmount - Math.round(order.totalAmount * 0.3)))}
+                   </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -659,6 +684,29 @@ function OrderCard({ order, onRefresh }) {
                   }}
                 >
                   {loading ? "Đang xử lý..." : "Thanh toán"}
+                </button>
+              )}
+              {canPayRemaining && !canRepurchase && (
+                <button
+                  onClick={handlePayNow} // handlePayNow will dynamically request remaining amount via backend
+                  disabled={loading}
+                  style={{
+                    padding: "10px 20px",
+                    background:
+                      "linear-gradient(135deg, #2196F3 0%, #1976D2 100%)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  {loading ? "Đang xử lý..." : "Thanh toán giao sau (70%)"}
                 </button>
               )}
               {canRetryPayment && !canRepurchase && (

@@ -1,11 +1,11 @@
-import { User } from "lucide-react";
+import { Gift, LayoutDashboard, ShoppingCart, User } from "lucide-react";
 import "./Header.css";
 
 const Header = ({ tab, setTab, user, onLogout }) => {
   const tabs = [
-    { k: "dashboard", icon: "📈", label: "Tổng quan"  },
-    { k: "products",  icon: "🎁", label: "Sản phẩm"   },
-    { k: "orders",    icon: "🛒", label: "Đơn hàng"   },
+    { k: "dashboard", icon: <LayoutDashboard />, label: "Tổng quan"  },
+    { k: "products",  icon: <Gift />, label: "Sản phẩm"   },
+    { k: "orders",    icon: <ShoppingCart />, label: "Đơn hàng"   },
   ];
 
   return (
