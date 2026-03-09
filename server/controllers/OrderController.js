@@ -57,7 +57,7 @@ const getOrdersByCustomer = async (req, res) => {
 
 const createOrder = async (req, res) => {
   try {
-    const { cartItems, note, paymentMethod, shippingAddress, phone } = req.body;
+    const { cartItems, note, paymentMethod, shippingAddress, phone, isInstallment } = req.body;
     const customer = req.user.id;
 
     // Validate cartItems
@@ -93,6 +93,7 @@ const createOrder = async (req, res) => {
       phone: finalPhone,
       note: note || "",
       paymentMethod: paymentMethod || "cod",
+      isInstallment: isInstallment || false,
     };
 
     const newOrder = await orderService.createOrder(orderData);

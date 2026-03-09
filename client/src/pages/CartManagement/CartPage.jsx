@@ -6,7 +6,7 @@ import {
   removeFromCart,
 } from "../../services/cartService";
 import { formatPrice } from "../../services/productService";
-import { Trash2, Plus, Minus } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart } from "lucide-react";
 import { toast } from "react-toastify";
 
 export default function CartPage() {
@@ -127,9 +127,12 @@ export default function CartPage() {
           fontWeight: "700",
           color: "#C62828",
           marginBottom: "24px",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
         }}
       >
-        🛒 Giỏ hàng của bạn
+        <ShoppingCart /> Giỏ hàng của bạn
       </h1>
 
       {cartItems.length === 0 ? (

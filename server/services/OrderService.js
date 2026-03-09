@@ -196,11 +196,22 @@ class OrderService {
         phone,
         note,
         paymentMethod,
+        isInstallment,
       } = orderData;
 
       // Validate và xử lý cartItems
       const { processedItems, totalAmount } =
         await this.processCartItems(cartItems);
+
+      // Tính toán depositAmount cho trả góp
+      let depositAmount = 0;
+      let remainingBalance = 0;
+      const isInst = isInstallment || false;
+
+      if (isInst) {
+        depositAmount = Math.round(totalAmount * 0.3);
+        remainingBalance = totalAmount - depositAmount;
+      }
 
       // Tạo đơn hàng
       const order = new Order({
@@ -210,6 +221,9 @@ class OrderService {
         phone,
         note,
         totalAmount,
+        isInstallment: isInst,
+        depositAmount,
+        remainingBalance,
         paymentMethod: paymentMethod || "cod",
         paymentStatus: paymentMethod === "cod" ? "pending" : "pending",
         orderStatus: "processing",
@@ -217,8 +231,10 @@ class OrderService {
 
       await order.save();
 
-      // Giảm số lượng sản phẩm trong kho
-      await this.updateProductStock(processedItems);
+      // Giảm số lượng sản phẩm trong kho (Không giảm ngay cho trả góp, sẽ giảm khi thanh toán cọc thành công)
+      if (!isInst) {
+        await this.updateProductStock(processedItems);
+      }
 
       // Populate thông tin
       await order.populate("customer", "fullname email phone");
@@ -299,7 +315,7 @@ class OrderService {
       if (orderStatus === "shipped") {
         const isOnlinePayment =
           order.paymentMethod === "vnpay" || order.paymentMethod === "momo";
-        const isNotPaid = order.paymentStatus !== "paid";
+        const isNotPaid = order.paymentStatus !== "paid" && order.paymentStatus !== "deposited"; // Also check for 'deposited'
 
         if (isOnlinePayment && isNotPaid) {
           const statusText =
@@ -320,7 +336,7 @@ class OrderService {
       }
 
       // Nếu hủy đơn hoặc trả hàng, hoàn trả tồn kho
-      if ((orderStatus === "cancelled" || orderStatus === "returned") && 
+      if ((orderStatus === "cancelled" || orderStatus === "returned") &&
           (order.orderStatus !== "cancelled" && order.orderStatus !== "returned")) {
         await this.restoreProductStock(order.cartItems);
       }
@@ -374,7 +390,7 @@ class OrderService {
    */
   async updatePaymentStatus(orderId, paymentStatus, paymentMethod = null) {
     try {
-      const validStatuses = ["pending", "paid", "failed"];
+      const validStatuses = ["pending", "deposited", "paid", "failed"];
       if (!validStatuses.includes(paymentStatus)) {
         throw new Error("Trạng thái thanh toán không hợp lệ");
       }
@@ -384,12 +400,31 @@ class OrderService {
         throw new Error("Không tìm thấy đơn hàng");
       }
 
-      order.paymentStatus = paymentStatus;
+      let finalPaymentStatus = paymentStatus;
+
+      // Kịch bản Trả góp: Lần đầu thanh toán thành công (pending hoặc failed -> paid từ IPN/Return) -> Chuyển thành deposited
+    if (finalPaymentStatus === "paid" && order.isInstallment && (order.paymentStatus === "pending" || order.paymentStatus === "failed")) {
+      finalPaymentStatus = "deposited";
+    }
+
+    const oldStatus = order.paymentStatus;
+    
+    // Nếu đơn trả góp đã cọc thành công (deposited), mà thanh toán phần còn lại bị lỗi, không ghi đè thành failed để giữ trạng thái cọc
+    if (finalPaymentStatus === "failed" && oldStatus === "deposited") {
+      finalPaymentStatus = "deposited";
+    }
+
+    order.paymentStatus = finalPaymentStatus;
       if (paymentMethod) {
         order.paymentMethod = paymentMethod;
       }
 
       await order.save();
+
+      // Trừ kho khi cọc thành công
+      if (order.isInstallment && finalPaymentStatus === "deposited" && oldStatus !== "deposited") {
+        await this.updateProductStock(order.cartItems);
+      }
 
       await order.populate("customer", "fullname email phone");
       await order.populate("cartItems.product");

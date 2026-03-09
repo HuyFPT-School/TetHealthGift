@@ -71,16 +71,25 @@ const OrderManagement = () => {
     load();
   }, [load]);
 
-  const updateStatus = async (id, orderStatus) => {
-    // Prevent shipping if VNPay/MoMo payment not completed
+    const updateStatus = async (id, orderStatus) => {
+    // Prevent shipping if VNPay/MoMo payment not completed or Installment is not fully paid
     if (orderStatus === "shipped") {
       const order = orders.find((o) => o._id === id) || detail;
       if (order) {
         const isOnlinePayment =
           order.paymentMethod === "vnpay" || order.paymentMethod === "momo";
+        
+        if (order.isInstallment && order.paymentStatus !== "paid") {
+          showT(
+            `Không thể giao hàng vì khách hàng chỉ mới cọc (hoặc chưa thanh toán). Vui lòng đợi khách thanh toán đủ 100%.`,
+            "error",
+          );
+          return;
+        }
+
         const isNotPaid = order.paymentStatus !== "paid";
 
-        if (isOnlinePayment && isNotPaid) {
+        if (isOnlinePayment && !order.isInstallment && isNotPaid) {
           const statusText =
             order.paymentStatus === "failed"
               ? "thanh toán thất bại"

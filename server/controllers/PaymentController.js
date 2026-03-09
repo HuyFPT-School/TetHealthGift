@@ -21,7 +21,15 @@ const createVNPayPayment = async (req, res) => {
     const order = await orderService.getOrderById(orderId);
 
     // Validate amount
-    const amount = order.totalAmount;
+    let amount = order.totalAmount;
+    if (order.isInstallment) {
+      if (order.paymentStatus === "pending" || order.paymentStatus === "failed") {
+        amount = order.depositAmount;
+      } else if (order.paymentStatus === "deposited") {
+        amount = order.remainingBalance;
+      }
+    }
+    
     if (amount <= 0) {
       return res.status(400).json({
         success: false,
@@ -48,8 +56,11 @@ const createVNPayPayment = async (req, res) => {
     if (ipAddr.startsWith("::ffff:")) ipAddr = ipAddr.slice(7);
 
     // Tạo URL thanh toán VNPAY
+    // Thêm hậu tố để tránh trùng vnp_TxnRef nếu thanh toán lần 2 (trả góp)
+    const txnRef = (order.paymentStatus === "pending" || order.paymentStatus === "failed") ? `${orderId}-DEP` : `${orderId}-REM`;
+
     const paymentUrl = vnpayService.createPaymentUrl({
-      orderId,
+      orderId: txnRef,
       amount,
       orderInfo: orderInfo || `Thanh toán đơn hàng #${orderId}`,
       orderType: orderType || "other",
@@ -89,24 +100,27 @@ const vnpayReturn = async (req, res) => {
       );
     }
 
+    // Extract real orderId (remove -DEP or -REM suffix if exists)
+    const realOrderId = verifyResult.orderId.split("-")[0];
+
     // Cập nhật trạng thái thanh toán - sử dụng OrderService
     if (verifyResult.isSuccess) {
       await orderService.updatePaymentStatus(
-        verifyResult.orderId,
+        realOrderId,
         "paid",
         "vnpay",
       );
 
       // ✅ Redirect về frontend với trạng thái success
       return res.redirect(
-        `${clientUrl}/payment-result?status=success&orderId=${verifyResult.orderId}&amount=${verifyResult.amount}&transactionNo=${verifyResult.transactionNo}&bankCode=${verifyResult.bankCode}&paymentMethod=vnpay`,
+        `${clientUrl}/payment-result?status=success&orderId=${realOrderId}&amount=${verifyResult.amount}&transactionNo=${verifyResult.transactionNo}&bankCode=${verifyResult.bankCode}&paymentMethod=vnpay`,
       );
     } else {
-      await orderService.updatePaymentStatus(verifyResult.orderId, "failed");
+      await orderService.updatePaymentStatus(realOrderId, "failed");
 
       // Redirect về frontend với trạng thái failed
       return res.redirect(
-        `${clientUrl}/payment-result?status=failed&orderId=${verifyResult.orderId}&message=${encodeURIComponent(verifyResult.message)}&responseCode=${verifyResult.responseCode}`,
+        `${clientUrl}/payment-result?status=failed&orderId=${realOrderId}&message=${encodeURIComponent(verifyResult.message)}&responseCode=${verifyResult.responseCode}`,
       );
     }
   } catch (error) {
@@ -136,7 +150,15 @@ const createMoMoPayment = async (req, res) => {
     const order = await orderService.getOrderById(orderId);
 
     // Validate amount
-    const amount = order.totalAmount;
+    let amount = order.totalAmount;
+    if (order.isInstallment) {
+      if (order.paymentStatus === "pending" || order.paymentStatus === "failed") {
+        amount = order.depositAmount;
+      } else if (order.paymentStatus === "deposited") {
+        amount = order.remainingBalance;
+      }
+    }
+    
     if (amount <= 0) {
       return res.status(400).json({
         success: false,
@@ -153,8 +175,10 @@ const createMoMoPayment = async (req, res) => {
     }
 
     // Tạo thanh toán MoMo
+    const txnRef = (order.paymentStatus === "pending" || order.paymentStatus === "failed") ? `${orderId}-DEP` : `${orderId}-REM`;
+
     const paymentResult = await momoService.createPayment({
-      orderId,
+      orderId: txnRef,
       amount,
       orderInfo: orderInfo || `Thanh toán đơn hàng #${orderId}`,
       extraData: extraData || "",
@@ -249,10 +273,13 @@ const momoIPN = async (req, res) => {
       });
     }
 
+    // Extract real orderId
+    const realOrderId = verifyResult.orderId.split("-")[0];
+
     // Cập nhật trạng thái thanh toán - sử dụng OrderService
     if (verifyResult.isSuccess) {
       await orderService.updatePaymentStatus(
-        verifyResult.orderId,
+        realOrderId,
         "paid",
         "momo",
       );
@@ -263,7 +290,9 @@ const momoIPN = async (req, res) => {
         message: "Success",
       });
     } else {
-      await orderService.updatePaymentStatus(verifyResult.orderId, "failed");
+      // NOTE: We don't want to mark order as completely failed on IPN failure if it's just a user canceling
+      // But preserving existing logic here:
+      await orderService.updatePaymentStatus(realOrderId, "failed");
 
       res.status(200).json({
         resultCode: verifyResult.resultCode,
