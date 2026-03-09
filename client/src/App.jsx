@@ -35,6 +35,7 @@ import BlogDetail from "./components/BlogDetail/BlogDetail";
 import PromotionManagement from "./pages/PromotionManagement/PromotionManagement";
 import CustomBasketBuilder from "./pages/CustomBasketBuilder/CustomBasketBuilder";
 import PackagingManagement from "./pages/PackagingManagement/PackagingManagement";
+import PromotionsPage from "./pages/PromotionsPage/PromotionsPage";
 
 /* ── Loading ── */
 function AuthLoading() {
@@ -145,6 +146,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/qua-tet" element={<ProductListingPage />} />
           <Route path="/qua-tet/:id" element={<ProductDetailPage />} />
+          <Route path="/uu-dai" element={<PromotionsPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:id" element={<BlogDetail />} />
           <Route path="/custom-basket" element={<CustomBasketBuilder />} />
