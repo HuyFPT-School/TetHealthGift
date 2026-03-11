@@ -1,4 +1,6 @@
 const Product = require("../models/ProductModel");
+const CustomBasket = require("../models/CustomBasketModel");
+const Order = require("../models/OrderModel");
 
 /**
  * Product Service
@@ -198,12 +200,14 @@ class ProductService {
         throw new Error("Giá sản phẩm phải lớn hơn 0");
       }
 
-      // Validate discount price
-      if (updateData.discountPrice) {
-        const finalPrice = updateData.price || product.price;
-        if (updateData.discountPrice >= finalPrice) {
-          throw new Error("Giá khuyến mãi phải nhỏ hơn giá gốc");
-        }
+      // Validate discount price — kiểm tra cả discountPrice cũ nếu chỉ cập nhật price
+      const finalPrice = updateData.price !== undefined ? updateData.price : product.price;
+      const finalDiscountPrice = updateData.discountPrice !== undefined ? updateData.discountPrice : product.discountPrice;
+
+      if (finalDiscountPrice && finalDiscountPrice >= finalPrice) {
+        throw new Error(
+          `Giá khuyến mãi (${finalDiscountPrice.toLocaleString()}đ) phải nhỏ hơn giá gốc (${finalPrice.toLocaleString()}đ). Vui lòng cập nhật lại giá khuyến mãi.`
+        );
       }
 
       // Validate quantity
@@ -247,12 +251,36 @@ class ProductService {
 
   /**
    * Xóa sản phẩm
+   * Kiểm tra ràng buộc với CustomBasket (draft) trước khi xóa
    */
   async deleteProduct(productId) {
     try {
       const product = await Product.findById(productId);
       if (!product) {
         throw new Error("Không tìm thấy sản phẩm");
+      }
+
+      // Kiểm tra sản phẩm đang nằm trong giỏ quà nháp
+      const draftBasketCount = await CustomBasket.countDocuments({
+        "items.product": productId,
+        status: { $in: ["draft", "completed", "added_to_cart"] },
+      });
+      if (draftBasketCount > 0) {
+        throw new Error(
+          `Không thể xóa sản phẩm này vì có ${draftBasketCount} giỏ quà đang sử dụng. ` +
+          `Hãy đặt sản phẩm sang trạng thái ẩn thay vì xóa.`
+        );
+      }
+
+      // Kiểm tra sản phẩm đang nằm trong đơn hàng chưa hoàn thành
+      const activeOrderCount = await Order.countDocuments({
+        "cartItems.product": productId,
+        orderStatus: { $in: ["processing", "shipped"] },
+      });
+      if (activeOrderCount > 0) {
+        throw new Error(
+          `Không thể xóa sản phẩm này vì có ${activeOrderCount} đơn hàng đang xử lý hoặc đang giao chứa sản phẩm này.`
+        );
       }
 
       await Product.findByIdAndDelete(productId);

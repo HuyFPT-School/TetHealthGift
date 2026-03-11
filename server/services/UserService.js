@@ -1,4 +1,6 @@
 const User = require("../models/UserModel");
+const Order = require("../models/OrderModel");
+const CustomBasket = require("../models/CustomBasketModel");
 const bcrypt = require("bcryptjs");
 
 /**
@@ -192,12 +194,38 @@ class UserService {
 
   /**
    * Xóa user
+   * Kiểm tra ràng buộc với Order đang active và CustomBasket nữa cưa
    */
   async deleteUser(userId) {
     try {
       const user = await User.findById(userId);
       if (!user) {
         throw new Error("Không tìm thấy người dùng");
+      }
+
+      // Kiểm tra đơn hàng đang active (chưa giao hoàn thành)
+      const activeOrders = await Order.countDocuments({
+        customer: userId,
+        orderStatus: { $in: ["processing", "shipped"] },
+      });
+      if (activeOrders > 0) {
+        throw new Error(
+          `Không thể xóa người dùng này vì có ${activeOrders} đơn hàng đang xử lý hoặc đang giao. ` +
+          `Vui lòng đợi các đơn hàng hoàn tất hoặc hủy trước khi xóa tài khoản.`
+        );
+      }
+
+      // Kiểm tra giỏ quà đang nữửa (draft/added_to_cart)
+      const activeBaskets = await CustomBasket.countDocuments({
+        user: userId,
+        status: { $in: ["draft", "added_to_cart"] },
+      });
+      if (activeBaskets > 0) {
+        // Xóa các basket này vì chưa commit vào Order
+        await CustomBasket.deleteMany({
+          user: userId,
+          status: { $in: ["draft", "added_to_cart"] },
+        });
       }
 
       await User.findByIdAndDelete(userId);

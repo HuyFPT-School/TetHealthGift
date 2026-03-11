@@ -205,17 +205,23 @@ class CustomBasketService {
   }
 
   // Cancel/delete basket
+  // Chỉ cho phép hủy basket ở trạng thái draft
   async cancelBasket(basketId, userId) {
-    const basket = await CustomBasket.findOneAndDelete({
-      _id: basketId,
-      user: userId,
-    });
+    const basket = await CustomBasket.findOne({ _id: basketId, user: userId });
 
     if (!basket) {
       throw new Error("Không tìm thấy giỏ quà");
     }
 
-    return { message: "Đã hủy giỏ quà" };
+    // Không xóa basket đã được thêm vào giỏ hàng / thanh toán
+    if (basket.status === "added_to_cart") {
+      throw new Error(
+        "Giỏ quà này đã được thêm vào giỏ hàng. Vui lòng xóa khỏi giỏ hàng trước khi hủy."
+      );
+    }
+
+    await basket.deleteOne();
+    return { message: "Dã hủy giỏ quà" };
   }
 
   // Get user's baskets
@@ -263,11 +269,16 @@ class CustomBasketService {
   }
 
   // Update packaging type
+  // Khi thay đổi price/capacity: đồng bộ với các CustomBasket đang draft
   async updatePackaging(packagingId, updateData) {
     const packaging = await Packaging.findById(packagingId);
     if (!packaging) {
       throw new Error("Không tìm thấy loại bao bì");
     }
+
+    const oldCapacity = packaging.capacity;
+    const isPriceChanging = updateData.price !== undefined && updateData.price !== packaging.price;
+    const isCapacityDecreasing = updateData.capacity !== undefined && updateData.capacity < oldCapacity;
 
     // Update allowed fields
     const allowedFields = [
@@ -287,6 +298,50 @@ class CustomBasketService {
     });
 
     await packaging.save();
+
+    // Khi giảm capacity: invalidate các draft basket đang vượt capacity mới
+    if (isCapacityDecreasing) {
+      const newCapacity = updateData.capacity;
+      const affectedBaskets = await CustomBasket.find({
+        packaging: packagingId,
+        status: "draft",
+      });
+
+      for (const basket of affectedBaskets) {
+        const totalItems = basket.items.reduce((sum, item) => sum + item.quantity, 0);
+        if (totalItems > newCapacity) {
+          // Giảm items xuống bằng cách xóa bớt item cuối cho đến khi vừa capacity
+          let current = totalItems;
+          while (current > newCapacity && basket.items.length > 0) {
+            const lastItem = basket.items[basket.items.length - 1];
+            const overflow = current - newCapacity;
+            if (lastItem.quantity <= overflow) {
+              current -= lastItem.quantity;
+              basket.items.pop();
+            } else {
+              lastItem.quantity -= overflow;
+              current = newCapacity;
+            }
+          }
+          await basket.save();
+        }
+      }
+    }
+
+    // Khi thay đổi price: recalculate totalPrice cho các draft basket
+    if (isPriceChanging) {
+      const draftBaskets = await CustomBasket.find({
+        packaging: packagingId,
+        status: "draft",
+      });
+
+      for (const basket of draftBaskets) {
+        // Mark packaging as modified để trigger pre-save hook tính lại totalPrice
+        basket.markModified("packaging");
+        await basket.save();
+      }
+    }
+
     return packaging;
   }
 

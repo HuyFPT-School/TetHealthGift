@@ -17,7 +17,6 @@ const orderSchema = new mongoose.Schema(
         imageUrl: { type: String },
         // Custom basket fields
         isCustomBasket: { type: Boolean, default: false },
-        basketId: { type: mongoose.Schema.Types.ObjectId, ref: "CustomBasket" },
         basketDetails: {
           packaging: {
             name: String,

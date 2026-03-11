@@ -137,16 +137,12 @@ class OrderService {
               name: basketData.packaging?.name,
               price: basketData.packaging?.price,
             },
-            items: basketData.items.map((bi) => {
-              const productId = bi.product?._id || bi.product;
-              const productName = bi.product?.name || "Product";
-              return {
-                productId: productId,
-                name: productName,
-                quantity: bi.quantity,
-                price: bi.priceAtTime,
-              };
-            }),
+            items: basketData.items.map((bi) => ({
+              productId: bi.product?._id || bi.product,
+              name: bi.product?.name || "Product",
+              quantity: bi.quantity,
+              price: bi.priceAtTime,
+            })),
           },
         };
         processedItems.push(newItem);
@@ -439,6 +435,7 @@ class OrderService {
 
   /**
    * Xóa đơn hàng
+   * Chỉ hoàn trả tồn kho nếu đơn hàng chưa thực sự giao xong hoặc trả hàng
    */
   async deleteOrder(orderId) {
     try {
@@ -447,8 +444,10 @@ class OrderService {
         throw new Error("Không tìm thấy đơn hàng");
       }
 
-      // Hoàn trả tồn kho nếu đơn hàng chưa hủy
-      if (order.orderStatus !== "cancelled") {
+      // Chỉ hoàn trả tồn kho khi đơn đang xử lý hoặc đang giao
+      // Không hoàn trả nếu: cancelled (đã hoàn trả rồi), delivered (hàng đã giao thật), returned (đã xử lý)
+      const shouldRestoreStock = ["processing", "shipped"].includes(order.orderStatus);
+      if (shouldRestoreStock) {
         await this.restoreProductStock(order.cartItems);
       }
 
