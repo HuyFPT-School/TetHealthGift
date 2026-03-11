@@ -31,6 +31,7 @@ const orderSchema = new mongoose.Schema(
               name: String,
               quantity: Number,
               price: Number,
+              imageUrl: String,
             },
           ],
         },
@@ -68,7 +69,7 @@ const orderSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: ["pending", "deposited", "paid", "failed"],
+      enum: ["pending", "deposited", "paid", "failed", "refunded"],
       default: "pending",
     },
 

@@ -142,6 +142,7 @@ class OrderService {
               name: bi.product?.name || "Product",
               quantity: bi.quantity,
               price: bi.priceAtTime,
+              imageUrl: bi.product?.imageUrl || bi.product?.images?.[0] || "",
             })),
           },
         };
@@ -335,6 +336,13 @@ class OrderService {
       if ((orderStatus === "cancelled" || orderStatus === "returned") &&
           (order.orderStatus !== "cancelled" && order.orderStatus !== "returned")) {
         await this.restoreProductStock(order.cartItems);
+
+        // Đánh dấu hoàn tiền nếu đã thanh toán qua VNPay/MoMo
+        const isOnlinePayment = order.paymentMethod === "vnpay" || order.paymentMethod === "momo";
+        const wasCharged = order.paymentStatus === "paid" || order.paymentStatus === "deposited";
+        if (isOnlinePayment && wasCharged) {
+          order.paymentStatus = "refunded";
+        }
       }
 
       // Cập nhật trạng thái thanh toán thành đã thanh toán khi giao hàng thành công
@@ -369,6 +377,13 @@ class OrderService {
         throw new Error("Đơn hàng đã bị hủy trước đó");
       }
 
+      // Không thể hủy đơn hàng đang được vận chuyển
+      if (order.orderStatus === "shipped") {
+        throw new Error(
+          "Không thể hủy đơn hàng đang giao. Vui lòng đợi giao hàng hoàn thành hoặc xử lý hoàn trả.",
+        );
+      }
+
       // Không thể hủy đơn hàng đã giao hoàn thành
       if (order.orderStatus === "delivered") {
         throw new Error("Không thể hủy đơn hàng đã giao hoàn thành");
@@ -386,7 +401,7 @@ class OrderService {
    */
   async updatePaymentStatus(orderId, paymentStatus, paymentMethod = null) {
     try {
-      const validStatuses = ["pending", "deposited", "paid", "failed"];
+      const validStatuses = ["pending", "deposited", "paid", "failed", "refunded"];
       if (!validStatuses.includes(paymentStatus)) {
         throw new Error("Trạng thái thanh toán không hợp lệ");
       }

@@ -268,7 +268,7 @@ const OrderManagement = () => {
                                 {ORDER_STATUS[st.next]?.label}
                               </button>
                             )}
-                            {!["delivered", "cancelled", "return_requested", "returned"].includes(
+                            {!["shipped", "delivered", "cancelled", "return_requested", "returned"].includes(
                               o.orderStatus,
                             ) && (
                               <button
@@ -337,7 +337,6 @@ const OrderManagement = () => {
               ["SĐT", detail.phone || detail.customer?.phone || "—"],
               ["Địa chỉ", detail.shippingAddress || "—"],
               ["Thanh toán", detail.paymentMethod || "—"],
-              ["TT Thanh toán", detail.paymentStatus || "—"],
               ["Ngày đặt", fmtDate(detail.createdAt)],
             ].map(([k, v]) => (
               <div key={k} className="detail-item">
@@ -345,6 +344,22 @@ const OrderManagement = () => {
                 <div className="detail-val">{v}</div>
               </div>
             ))}
+            {(() => {
+              const PSTATUS = {
+                pending: { label: "Chưa thanh toán", color: "#FF9800" },
+                deposited: { label: "Đã cọc 30%", color: "#2196F3" },
+                paid: { label: "Đã thanh toán", color: "#4CAF50" },
+                failed: { label: "Thanh toán thất bại", color: "#F44336" },
+                refunded: { label: "Đã hoàn tiền", color: "#00897B" },
+              };
+              const ps = PSTATUS[detail.paymentStatus] || { label: detail.paymentStatus || "—", color: "#555" };
+              return (
+                <div className="detail-item">
+                  <div className="detail-key">TT Thanh toán</div>
+                  <div className="detail-val" style={{ color: ps.color, fontWeight: 600 }}>{ps.label}</div>
+                </div>
+              );
+            })()}
           </div>
 
           {(detail.cartItems || detail.items || detail.orderItems || [])
@@ -357,6 +372,7 @@ const OrderManagement = () => {
                     key={i}
                     className={`item-row${i % 2 === 0 ? " alt" : ""}`}
                   >
+                    {/* Main item row */}
                     <div
                       style={{
                         display: "flex",
@@ -389,6 +405,11 @@ const OrderManagement = () => {
                           item.product?.name ||
                           item.productId?.name ||
                           `SP ${i + 1}`}
+                        {item.isCustomBasket && (
+                          <span style={{ marginLeft: 6, fontSize: "11px", background: "#FFF3E0", color: "#E65100", padding: "2px 7px", borderRadius: 10, fontWeight: 500 }}>
+                            Giỏ quà
+                          </span>
+                        )}
                         {item.quantity && (
                           <span className="item-qty"> x {item.quantity}</span>
                         )}
@@ -397,6 +418,33 @@ const OrderManagement = () => {
                     <span className="item-price">
                       {vnd((item.price || 0) * (item.quantity || 1))}
                     </span>
+
+                    {/* Custom basket sub-items */}
+                    {item.isCustomBasket && item.basketDetails && (
+                      <div style={{ width: "100%", marginTop: 8, marginLeft: 0, padding: "10px 12px", background: "#FFFBF5", borderRadius: 8, border: "1px dashed #FFD699" }}>
+                        <div style={{ fontSize: "11px", fontWeight: 700, color: "#E65100", marginBottom: 6 }}>
+                          Nội dung giỏ quà:
+                        </div>
+                        {item.basketDetails.packaging?.name && (
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#555", marginBottom: 4 }}>
+                            <span>{item.basketDetails.packaging.name} (Bao bì)</span>
+                            <span style={{ color: "#888" }}>{vnd(item.basketDetails.packaging.price || 0)}</span>
+                          </div>
+                        )}
+                        {(item.basketDetails.items || []).map((bi, biIdx) => (
+                          <div key={biIdx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", color: "#555", marginBottom: 5 }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              {bi.imageUrl
+                                ? <img src={bi.imageUrl} alt={bi.name} style={{ width: 28, height: 28, borderRadius: 5, objectFit: "cover", border: "1px solid #eee" }} />
+                                : <span style={{ width: 28, height: 28, background: "#f0e8e0", borderRadius: 5, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>📦</span>
+                              }
+                              {bi.name} <span style={{ color: "#aaa" }}>x{bi.quantity}</span>
+                            </span>
+                            <span style={{ color: "#888" }}>{vnd((bi.price || 0) * bi.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ),
               )}
@@ -471,7 +519,7 @@ const OrderManagement = () => {
                 )}
               </button>
             )}
-            {!["delivered", "cancelled", "return_requested", "returned"].includes(detail.orderStatus) && (
+            {!["shipped", "delivered", "cancelled", "return_requested", "returned"].includes(detail.orderStatus) && (
               <button
                 className="btn-icon-red"
                 style={{ padding: "9px 18px" }}

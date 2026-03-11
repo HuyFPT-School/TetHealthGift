@@ -196,7 +196,7 @@ const CustomBasketBuilder = () => {
     <div className="custom-basket-page">
       {/* Header */}
       <div className="custom-basket-header">
-        <h1>🎁 Tạo Giỏ Quà Tùy Chỉnh</h1>
+        <h1>Tạo Giỏ Quà Tùy Chỉnh</h1>
         <p>Chọn bao bì và sản phẩm để tạo món quà Tết độc đáo</p>
       </div>
 
