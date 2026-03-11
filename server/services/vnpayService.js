@@ -162,12 +162,19 @@ class VNPayService {
    * @returns {string} Formatted date string
    */
   formatDate(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const seconds = String(date.getSeconds()).padStart(2, "0");
+    // Always use Vietnam timezone (UTC+7) regardless of server timezone.
+    // Vercel runs in UTC+0, but VNPAY expects timestamps in GMT+7.
+    // Using getHours() would return UTC on Vercel → VNPAY sees expired transactions.
+    const vietnamOffset = 7 * 60; // minutes
+    const utcMs = date.getTime() + date.getTimezoneOffset() * 60 * 1000;
+    const vnDate = new Date(utcMs + vietnamOffset * 60 * 1000);
+
+    const year = vnDate.getFullYear();
+    const month = String(vnDate.getMonth() + 1).padStart(2, "0");
+    const day = String(vnDate.getDate()).padStart(2, "0");
+    const hours = String(vnDate.getHours()).padStart(2, "0");
+    const minutes = String(vnDate.getMinutes()).padStart(2, "0");
+    const seconds = String(vnDate.getSeconds()).padStart(2, "0");
 
     return `${year}${month}${day}${hours}${minutes}${seconds}`;
   }
