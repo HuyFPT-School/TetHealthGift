@@ -77,7 +77,7 @@ const options = {
             },
             role: {
               type: "string",
-              enum: ["Admin", "StaffManager", "User"],
+              enum: ["Admin", "StaffManager", "Member"],
               description: "User role",
             },
             isVerified: {
