@@ -60,6 +60,7 @@ const orderSchema = new mongoose.Schema(
     isInstallment: { type: Boolean, default: false },
     depositAmount: { type: Number, default: 0 },
     remainingBalance: { type: Number, default: 0 },
+    depositDeadline: { type: Date },
 
     paymentMethod: {
       type: String,
@@ -78,6 +79,7 @@ const orderSchema = new mongoose.Schema(
       enum: ["processing", "shipped", "delivered", "cancelled", "return_requested", "returned"],
       default: "processing",
     },
+    cancelReason: { type: String },
   },
   { timestamps: true },
 );

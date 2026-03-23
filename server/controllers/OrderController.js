@@ -166,6 +166,7 @@ const updatePaymentStatus = async (req, res) => {
 const cancelOrder = async (req, res) => {
   try {
     const { id } = req.params;
+    const { cancelReason } = req.body;
     const userId = req.user.userId;
     const userRole = req.user.role;
 
@@ -181,7 +182,7 @@ const cancelOrder = async (req, res) => {
       }
     }
 
-    const cancelledOrder = await orderService.cancelOrder(id);
+    const cancelledOrder = await orderService.cancelOrder(id, cancelReason);
 
     res.status(200).json({
       message: "Hủy đơn hàng thành công",

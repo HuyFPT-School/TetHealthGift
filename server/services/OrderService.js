@@ -203,11 +203,14 @@ class OrderService {
       // Tính toán depositAmount cho trả góp
       let depositAmount = 0;
       let remainingBalance = 0;
+      let depositDeadline = null;
       const isInst = isInstallment || false;
 
       if (isInst) {
         depositAmount = Math.round(totalAmount * 0.3);
         remainingBalance = totalAmount - depositAmount;
+        // Đặt hạn chót thanh toán phần còn lại là 7 ngày kể từ khi đặt đơn
+        depositDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       }
 
       // Tạo đơn hàng
@@ -221,6 +224,7 @@ class OrderService {
         isInstallment: isInst,
         depositAmount,
         remainingBalance,
+        depositDeadline,
         paymentMethod: paymentMethod || "cod",
         paymentStatus: paymentMethod === "cod" ? "pending" : "pending",
         orderStatus: "processing",
@@ -296,7 +300,7 @@ class OrderService {
   /**
    * Cập nhật trạng thái đơn hàng
    */
-  async updateOrderStatus(orderId, orderStatus) {
+  async updateOrderStatus(orderId, orderStatus, cancelReason = "") {
     try {
       const validStatuses = ["processing", "shipped", "delivered", "cancelled", "return_requested", "returned"];
       if (!validStatuses.includes(orderStatus)) {
@@ -312,15 +316,19 @@ class OrderService {
       if (orderStatus === "shipped") {
         const isOnlinePayment =
           order.paymentMethod === "vnpay" || order.paymentMethod === "momo";
-        const isNotPaid = order.paymentStatus !== "paid" && order.paymentStatus !== "deposited"; // Also check for 'deposited'
+        
+        // BUG FIX: Trả góp online bắt buộc phải "paid" 100% mới được ship
+        const requiresFullPayment = isOnlinePayment || order.isInstallment;
+        const isNotPaid = order.paymentStatus !== "paid";
+        const isPartiallyPaid = order.paymentStatus === "deposited"; 
 
-        if (isOnlinePayment && isNotPaid) {
-          const statusText =
-            order.paymentStatus === "failed"
-              ? "thanh toán thất bại"
-              : "chưa thanh toán";
+        if (requiresFullPayment && isNotPaid) {
+          let statusText = order.paymentStatus === "failed" ? "thanh toán thất bại" : "chưa thanh toán";
+          if (isPartiallyPaid && order.isInstallment) {
+             statusText = "mới chỉ cọc 30%, chưa thanh toán phần còn lại";
+          }
           throw new Error(
-            `Không thể chuyển sang trạng thái "Đang giao" vì đơn hàng ${statusText}. Vui lòng đợi khách thanh toán thành công.`,
+            `Không thể chuyển sang trạng thái "Đang giao" vì đơn hàng ${statusText}. Vui lòng đợi khách thanh toán đầy đủ.`,
           );
         }
       }
@@ -335,7 +343,12 @@ class OrderService {
       // Nếu hủy đơn hoặc trả hàng, hoàn trả tồn kho
       if ((orderStatus === "cancelled" || orderStatus === "returned") &&
           (order.orderStatus !== "cancelled" && order.orderStatus !== "returned")) {
-        await this.restoreProductStock(order.cartItems);
+        
+        // Cập nhật Fix Bug: Chỉ hoàn tồn kho nếu không phải trả góp, HOẶC trả góp đã thanh toán cọc/toàn bộ
+        const shouldRestoreStock = !order.isInstallment || (order.isInstallment && (order.paymentStatus === "deposited" || order.paymentStatus === "paid"));
+        if (shouldRestoreStock) {
+          await this.restoreProductStock(order.cartItems);
+        }
 
         // Đánh dấu hoàn tiền nếu đã thanh toán qua VNPay/MoMo
         const isOnlinePayment = order.paymentMethod === "vnpay" || order.paymentMethod === "momo";
@@ -348,6 +361,10 @@ class OrderService {
       // Cập nhật trạng thái thanh toán thành đã thanh toán khi giao hàng thành công
       if (orderStatus === "delivered" && order.paymentStatus !== "paid") {
         order.paymentStatus = "paid";
+      }
+
+      if (orderStatus === "cancelled" && cancelReason) {
+        order.cancelReason = cancelReason;
       }
 
       order.orderStatus = orderStatus;
@@ -365,7 +382,7 @@ class OrderService {
   /**
    * Hủy đơn hàng
    */
-  async cancelOrder(orderId) {
+  async cancelOrder(orderId, cancelReason = "") {
     try {
       const order = await Order.findById(orderId);
       if (!order) {
@@ -390,7 +407,7 @@ class OrderService {
       }
 
       // Cập nhật trạng thái sang cancelled (sẽ tự động hoàn trả tồn kho)
-      return await this.updateOrderStatus(orderId, "cancelled");
+      return await this.updateOrderStatus(orderId, "cancelled", cancelReason);
     } catch (error) {
       throw new Error(`Lỗi khi hủy đơn hàng: ${error.message}`);
     }
@@ -461,7 +478,13 @@ class OrderService {
 
       // Chỉ hoàn trả tồn kho khi đơn đang xử lý hoặc đang giao
       // Không hoàn trả nếu: cancelled (đã hoàn trả rồi), delivered (hàng đã giao thật), returned (đã xử lý)
-      const shouldRestoreStock = ["processing", "shipped"].includes(order.orderStatus);
+      let shouldRestoreStock = ["processing", "shipped"].includes(order.orderStatus);
+      
+      // Fix stock duplication logic
+      if (shouldRestoreStock && order.isInstallment && (order.paymentStatus !== "deposited" && order.paymentStatus !== "paid")) {
+        shouldRestoreStock = false;
+      }
+
       if (shouldRestoreStock) {
         await this.restoreProductStock(order.cartItems);
       }
