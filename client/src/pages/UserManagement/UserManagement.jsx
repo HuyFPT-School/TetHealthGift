@@ -9,11 +9,11 @@ const fmtDate = s => s ? new Date(s).toLocaleDateString("vi-VN") : "—";
 const ROLE_STYLE = {
   Admin:        { bg: "#FEE2E2", color: "#991B1B" },
   StaffManager: { bg: "#DBEAFE", color: "#1E40AF" },
-  User:         { bg: "#F3F4F6", color: "#374151" },
+  Member:       { bg: "#F3F4F6", color: "#374151" },
 };
 
 const RoleBadge = ({ role }) => {
-  const s = ROLE_STYLE[role] || ROLE_STYLE.User;
+  const s = ROLE_STYLE[role] || ROLE_STYLE.Member;
   return (
     <span className="role-badge" style={{ background: s.bg, color: s.color }}>
       {role}
@@ -42,7 +42,7 @@ const Avatar = ({ user }) => {
 const EMPTY_FORM = {
   fullname: "", email: "", password: "",
   phone: "", gender: "male", dateOfBirth: "",
-  address: "", role: "User",
+  address: "", role: "Member",
 };
 
 const PAGE_SIZE = 10;
@@ -228,7 +228,7 @@ const UserManagement = () => {
           <option value="all">Tất cả role</option>
           <option value="Admin">Admin</option>
           <option value="StaffManager">StaffManager</option>
-          <option value="User">User</option>
+          <option value="Member">Member</option>
         </select>
       </div>
 
@@ -348,7 +348,7 @@ const UserManagement = () => {
             <div className="field">
               <label>Role</label>
               <select className="inp" name="role" value={formData.role} onChange={handleChange}>
-                <option value="User">User</option>
+                <option value="Member">Member</option>
                 <option value="StaffManager">StaffManager</option>
                 <option value="Admin">Admin</option>
               </select>

@@ -91,7 +91,7 @@ class UserService {
         password: hashedPassword,
         fullname,
         phone,
-        role: role || "User",
+        role: role || "Member",
         address,
         gender,
         dateOfBirth,

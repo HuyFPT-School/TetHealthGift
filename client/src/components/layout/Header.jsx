@@ -310,7 +310,7 @@ export default function Header() {
                   {user.avatar ? (
                     <img
                       src={user.avatar}
-                      alt={user.name || "User"}
+                      alt={user.name || "Member"}
                       style={{
                         width: "100%",
                         height: "100%",
