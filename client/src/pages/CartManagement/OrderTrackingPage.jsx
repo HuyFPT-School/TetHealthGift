@@ -45,21 +45,28 @@ const PAYMENT_METHOD = {
   momo: "Ví MoMo",
 };
 
-function StatusTimeline({ status }) {
+function StatusTimeline({ status, cancelReason }) {
   if (status === "cancelled") {
     return (
       <div
         style={{
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: "8px",
           padding: "12px 0",
         }}
       >
-        <XCircle size={22} style={{ color: "#F44336" }} />
-        <span style={{ color: "#F44336", fontWeight: "600", fontSize: "14px" }}>
-          Đơn hàng đã bị hủy
-        </span>
+        <XCircle size={22} style={{ color: "#F44336", marginTop: "2px" }} />
+        <div>
+          <span style={{ color: "#F44336", fontWeight: "600", fontSize: "14px" }}>
+            Đơn hàng đã bị hủy
+          </span>
+          {cancelReason && (
+            <div style={{ color: "#666", fontSize: "13px", marginTop: "4px" }}>
+              Lý do: {cancelReason}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -283,13 +290,16 @@ function OrderCard({ order, onRefresh }) {
   };
 
   const handleCancelOrder = async () => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) {
+    const reason = window.prompt("Vui lòng nhập lý do hủy đơn hàng (*Bắt buộc):");
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error("Vui lòng nhập lý do hủy đơn hàng!");
       return;
     }
 
     try {
       setLoading(true);
-      await axiosInstance.patch(`/api/orders/${order._id}/cancel`);
+      await axiosInstance.patch(`/api/orders/${order._id}/cancel`, { cancelReason: reason.trim() });
       toast.success("Hủy đơn hàng thành công!");
       onRefresh(); // Refresh the order list
     } catch (error) {
@@ -411,7 +421,7 @@ function OrderCard({ order, onRefresh }) {
       {expanded && (
         <div style={{ padding: "16px 20px" }}>
           {/* Timeline */}
-          <StatusTimeline status={order.orderStatus} />
+          <StatusTimeline status={order.orderStatus} cancelReason={order.cancelReason} />
 
           {/* Products */}
           <div style={{ marginTop: "12px" }}>
@@ -615,11 +625,21 @@ function OrderCard({ order, onRefresh }) {
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "14px" }}>
-                   <span style={{ fontWeight: "600", color: "#333" }}>Còn lại thanh toán sau:</span>
+                   <span style={{ fontWeight: "600", color: "#333" }}>Còn lại phải thanh toán:</span>
                    <span style={{ fontWeight: "700", color: "#C62828" }}>
                      {formatPrice(order.remainingBalance || (order.totalAmount - Math.round(order.totalAmount * 0.3)))}
                    </span>
                 </div>
+                {order.depositDeadline && order.paymentStatus === "deposited" && (
+                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "13px" }}>
+                     <span style={{ fontWeight: "600", color: "#d32f2f" }}>Hạn chót thanh toán:</span>
+                     <span style={{ fontWeight: "700", color: "#d32f2f" }}>
+                       {new Date(order.depositDeadline).toLocaleDateString("vi-VN", {
+                          day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+                       })}
+                     </span>
+                  </div>
+                )}
               </>
             )}
           </div>

@@ -117,14 +117,19 @@ const OrderManagement = () => {
   };
 
   const cancelOrder = async (id) => {
-    if (!confirm("Xác nhận đơn hàng?")) return;
+    const reason = window.prompt("Vui lòng nhập lý do hủy đơn hàng (*Bắt buộc):");
+    if (reason === null) return;
+    if (!reason.trim()) {
+      showT("Bạn phải nhập lý do hủy đơn hàng!", "error");
+      return;
+    }
     setSaving(true);
     try {
-      await axiosInstance.patch(`/api/orders/${id}/cancel`);
+      await axiosInstance.patch(`/api/orders/${id}/cancel`, { cancelReason: reason.trim() });
       showT("Đã hủy đơn hàng");
       load();
       if (detail?._id === id)
-        setDetail((o) => ({ ...o, orderStatus: "cancelled" }));
+        setDetail((o) => ({ ...o, orderStatus: "cancelled", cancelReason: reason.trim() }));
     } catch (e) {
       showT(e.response?.data?.message || e.message, "error");
     } finally {
@@ -338,6 +343,12 @@ const OrderManagement = () => {
               ["Địa chỉ", detail.shippingAddress || "—"],
               ["Thanh toán", detail.paymentMethod || "—"],
               ["Ngày đặt", fmtDate(detail.createdAt)],
+              ...(detail.isInstallment && detail.depositDeadline && detail.paymentStatus === "deposited" ? [
+                ["Hạn chót thu 70%", new Date(detail.depositDeadline).toLocaleString("vi-VN")]
+              ] : []),
+              ...(detail.orderStatus === "cancelled" && detail.cancelReason ? [
+                ["Lý do hủy", detail.cancelReason]
+              ] : []),
             ].map(([k, v]) => (
               <div key={k} className="detail-item">
                 <div className="detail-key">{k}</div>
@@ -371,6 +382,7 @@ const OrderManagement = () => {
                   <div
                     key={i}
                     className={`item-row${i % 2 === 0 ? " alt" : ""}`}
+                    style={{ flexWrap: "wrap" }}
                   >
                     {/* Main item row */}
                     <div
