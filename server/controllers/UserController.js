@@ -103,6 +103,26 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const updateRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    if (!role) {
+      return res.status(400).json({ message: "Vui lòng cung cấp role mới" });
+    }
+    const user = await UserService.updateRole(id, role);
+    return res.status(200).json({
+      message: "Cập nhật role người dùng hoàn tất",
+      data: user,
+    });
+  } catch (err) {
+    if (err.message === "Không tìm thấy người dùng") {
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
+    res.status(500).json({ message: "Lỗi server: " + err.message });
+  }
+};
+
 const viewUser = async (req, res) => {
   try {
     const user = await UserService.getAllUsers();
@@ -118,4 +138,5 @@ module.exports = {
   viewUser,
   findById,
   createUser,
+  updateRole,
 };

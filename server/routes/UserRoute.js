@@ -5,6 +5,7 @@ const {
   viewUser,
   findById,
   createUser,
+  updateRole,
 } = require("../controllers/UserController");
 
 const router = express.Router();
@@ -237,6 +238,45 @@ router.post("/", createUser);
  *               $ref: '#/components/schemas/Error'
  */
 router.patch("/:id", updateUser);
+
+/**
+ * @swagger
+ * /api/users/{id}/role:
+ *   patch:
+ *     summary: Update user role
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [Admin, StaffManager, Member]
+ *     responses:
+ *       200:
+ *         description: User role updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       404:
+ *         description: User not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch("/:id/role", updateRole);
 
 /**
  * @swagger
