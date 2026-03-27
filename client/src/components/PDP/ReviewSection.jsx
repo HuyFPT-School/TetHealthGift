@@ -88,7 +88,7 @@ function RatingBar({ star, count, total }) {
   );
 }
 
-export default function ReviewSection({ product, token }) {
+export default function ReviewSection({ product, token, hasDeliveredOrder }) {
   // Khởi tạo từ comments thật của product
   const initialReviews = Array.isArray(product.comments)
     ? product.comments.map(formatComment)
@@ -183,8 +183,7 @@ export default function ReviewSection({ product, token }) {
   const canSubmit =
     !submitting &&
     newRating > 0 &&
-    newComment.trim() &&
-    (token || newName.trim());
+    newComment.trim();
 
   return (
     <div style={{ maxWidth: 800 }}>
@@ -356,7 +355,29 @@ export default function ReviewSection({ product, token }) {
         <h4 style={{ color: "#2C1810", marginBottom: 18, fontSize: 15 }}>
           ✍️ Viết đánh giá của bạn
         </h4>
-        {submitted ? (
+
+        {/* Gate: chỉ cho phép đánh giá khi đã nhận hàng */}
+        {!token ? (
+          <div style={{ textAlign: "center", padding: "20px 0", color: "#888", fontSize: 13 }}>
+            🔒 Vui lòng{" "}
+            <a href="/login" style={{ color: "#c0392b", fontWeight: 700 }}>đăng nhập</a>
+            {" "}để gửi đánh giá.
+          </div>
+        ) : !hasDeliveredOrder ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "20px 0",
+              color: "#92400E",
+              background: "#FEF3C7",
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            📦 Bạn chỉ có thể đánh giá sau khi đã nhận hàng thành công.
+          </div>
+        ) : submitted ? (
           <div
             style={{
               textAlign: "center",
@@ -380,23 +401,6 @@ export default function ReviewSection({ product, token }) {
                 onRate={setNewRating}
               />
             </div>
-
-            {/* Chỉ hiện ô tên nếu chưa đăng nhập */}
-            {!token && (
-              <input
-                placeholder="Họ và tên của bạn"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                style={{
-                  padding: "11px 14px",
-                  border: "1.5px solid #e0c0bc",
-                  borderRadius: 8,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  outline: "none",
-                }}
-              />
-            )}
 
             <textarea
               placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."

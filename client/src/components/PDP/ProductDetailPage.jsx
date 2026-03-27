@@ -5,6 +5,7 @@ import ReviewSection from "./ReviewSection";
 import { addToCart } from "../../services/cartService";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import axiosInstance from "@/lib/axios";
 
 // Ảnh fallback dùng khi URL không load được (tránh external placeholder service)
 const FALLBACK_IMG =
@@ -102,6 +103,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [tab, setTab] = useState("mo-ta");
+  const [hasDeliveredOrder, setHasDeliveredOrder] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -122,6 +124,26 @@ export default function ProductDetailPage() {
     };
     if (id) load();
   }, [id]);
+
+  // Kiểm tra xem user đã nhận hàng sản phẩm này chưa
+  useEffect(() => {
+    if (!token || !id) return;
+    axiosInstance.get("/api/orders/my-orders")
+      .then(res => {
+        const orders = res.data?.data || res.data || [];
+        const delivered = orders.some(o =>
+          o.orderStatus === "delivered" &&
+          o.cartItems?.some(item =>
+            (item.product === id || item.product?._id === id) ||
+            item.basketDetails?.items?.some(bi =>
+              bi.productId === id || bi.productId?._id === id
+            )
+          )
+        );
+        setHasDeliveredOrder(delivered);
+      })
+      .catch(() => setHasDeliveredOrder(false));
+  }, [token, id]);
 
   if (loading)
     return (
@@ -577,7 +599,7 @@ export default function ProductDetailPage() {
               )}
             </div>
           ) : (
-            <ReviewSection product={product} token={token} />
+            <ReviewSection product={product} token={token} hasDeliveredOrder={hasDeliveredOrder} />
           )}
         </div>
       </div>
