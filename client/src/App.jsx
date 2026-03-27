@@ -172,10 +172,6 @@ function App() {
         <Route element={<StaffManagerOnlyRoute />}>
           <Route element={<StaffLayout />}>
             <Route path="/staff/orders" element={<OrderManagement />} />
-            <Route
-              path="/staff/reviews"
-              element={<ComingSoon title="Quản lý đánh giá" />}
-            />
             <Route path="/staff/promotions" element={<PromotionManagement />} />
           </Route>
         </Route>

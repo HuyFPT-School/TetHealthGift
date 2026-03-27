@@ -193,6 +193,28 @@ class UserService {
   }
 
   /**
+   * Cập nhật role
+   */
+  async updateRole(userId, role) {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error("Không tìm thấy người dùng");
+      }
+      
+      user.role = role;
+      await user.save();
+
+      const userObject = user.toObject();
+      delete userObject.password;
+
+      return userObject;
+    } catch (error) {
+      throw new Error(`Lỗi khi cập nhật role: ${error.message}`);
+    }
+  }
+
+  /**
    * Xóa user
    * Kiểm tra ràng buộc với Order đang active và CustomBasket nữa cưa
    */

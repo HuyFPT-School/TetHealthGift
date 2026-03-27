@@ -16,9 +16,13 @@ const PaymentRoutes = require("./routes/PaymentRoutes");
 const WishlistRoute = require("./routes/WishlistRoute");
 const AnalyticsRoute = require("./routes/AnalyticsRoute");
 const CustomBasketRoutes = require("./routes/CustomBasketRoutes");
+const startDepositExpiryJob = require("./jobs/depositExpiryJob");
 
 const app = express();
 database.connect();
+
+// Khởi chạy các background jobs (Lập lịch tự động)
+startDepositExpiryJob();
 
 // Middleware
 const allowedOrigins = [

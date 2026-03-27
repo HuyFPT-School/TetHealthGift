@@ -40,9 +40,7 @@ const Avatar = ({ user }) => {
 
 /* ── Empty form state ── */
 const EMPTY_FORM = {
-  fullname: "", email: "", password: "",
-  phone: "", gender: "male", dateOfBirth: "",
-  address: "", role: "Member",
+  role: "Member",
 };
 
 const PAGE_SIZE = 10;
@@ -60,9 +58,7 @@ const UserManagement = () => {
   const [page,       setPage]       = useState(1);
 
   // Modals
-  const [showCreate,  setShowCreate]  = useState(false);
   const [editUser,    setEditUser]    = useState(null);   // user obj
-  const [deleteUser,  setDeleteUser]  = useState(null);   // user obj
   const [formData,    setFormData]    = useState(EMPTY_FORM);
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState("");
@@ -110,19 +106,9 @@ const UserManagement = () => {
   useEffect(() => setPage(1), [search, roleFilter]);
 
   /* ── Form helpers ── */
-  const openCreate = () => {
-    setFormData(EMPTY_FORM);
-    setFormError("");
-    setShowCreate(true);
-  };
-
   const openEdit = (u) => {
     setFormData({
-      fullname:    u.fullname    || "",
-      phone:       u.phone       || "",
-      gender:      u.gender      || "male",
-      dateOfBirth: u.dateOfBirth ? u.dateOfBirth.slice(0, 10) : "",
-      address:     u.address     || "",
+      role: u.role || "Member",
     });
     setFormError("");
     setEditUser(u);
@@ -132,63 +118,23 @@ const UserManagement = () => {
     setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
   };
 
-  /* ── Create user ── */
-  const handleCreate = async () => {
-    const { fullname, email, password, phone, gender, dateOfBirth } = formData;
-    if (!fullname || !email || !password || !phone || !gender || !dateOfBirth) {
-      setFormError("Vui lòng điền đầy đủ các trường bắt buộc (*)");
-      return;
-    }
-    setSaving(true);
-    setFormError("");
-    try {
-      await axiosInstance.post("/api/users", formData);
-      showToast("Tạo người dùng thành công");
-      setShowCreate(false);
-      fetchUsers();
-    } catch (e) {
-      setFormError(e.response?.data?.message || e.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /* ── Update user (chỉ các field được phép) ── */
+  /* ── Update user role ── */
   const handleUpdate = async () => {
-    if (!formData.fullname || !formData.phone) {
-      setFormError("Họ tên và số điện thoại không được để trống");
+    if (!formData.role) {
+      setFormError("Role không được để trống");
       return;
     }
     setSaving(true);
     setFormError("");
     try {
-      await axiosInstance.patch(`/api/users/${editUser._id}`, {
-        fullname:    formData.fullname,
-        phone:       formData.phone,
-        gender:      formData.gender,
-        dateOfBirth: formData.dateOfBirth,
-        address:     formData.address,
+      await axiosInstance.patch(`/api/users/${editUser._id}/role`, {
+        role: formData.role,
       });
-      showToast("Cập nhật người dùng thành công");
+      showToast("Cập nhật role người dùng thành công");
       setEditUser(null);
       fetchUsers();
     } catch (e) {
       setFormError(e.response?.data?.message || e.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /* ── Delete user ── */
-  const handleDelete = async () => {
-    setSaving(true);
-    try {
-      await axiosInstance.delete(`/api/users/${deleteUser._id}`);
-      showToast("Đã xóa người dùng");
-      setDeleteUser(null);
-      fetchUsers();
-    } catch (e) {
-      showToast(e.response?.data?.message || e.message, "error");
     } finally {
       setSaving(false);
     }
@@ -205,7 +151,6 @@ const UserManagement = () => {
           <span className="users-title">Quản lý người dùng</span>
           <span className="users-count">({filtered.length} người dùng)</span>
         </div>
-        <button className="btn-primary" onClick={openCreate}>Thêm người dùng</button>
       </div>
 
       {/* Toolbar */}
@@ -274,9 +219,7 @@ const UserManagement = () => {
                     <td>
                       <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                         <button className="btn-icon-blue" onClick={() => openEdit(u)}
-                          title="Chỉnh sửa">Chỉnh sửa</button>
-                        <button className="btn-icon-red" onClick={() => setDeleteUser(u)}
-                          title="Xóa">Xóa</button>
+                          title="Chỉnh sửa Role">Cập nhật Role</button>
                       </div>
                     </td>
                   </tr>
@@ -308,105 +251,18 @@ const UserManagement = () => {
         </div>
       )}
 
-      {/* ── Modal: Tạo mới ── */}
-      {showCreate && (
-        <Modal title="Thêm người dùng mới" onClose={() => setShowCreate(false)} wide>
+      {/* ── Modal: Chỉnh sửa ── */}
+      {editUser && (
+        <Modal title={`Cập nhật Role: ${editUser.fullname || editUser.email}`}
+          onClose={() => setEditUser(null)}>
           <div className="form-grid">
-            <div className="field">
-              <label>Họ tên *</label>
-              <input className="inp" name="fullname" value={formData.fullname}
-                onChange={handleChange} placeholder="Nguyễn Văn A" />
-            </div>
-            <div className="field">
-              <label>Email *</label>
-              <input className="inp" name="email" type="email" value={formData.email}
-                onChange={handleChange} placeholder="email@example.com" />
-            </div>
-            <div className="field">
-              <label>Mật khẩu * (8-30 ký tự, hoa, thường, số)</label>
-              <input className="inp" name="password" type="password" value={formData.password}
-                onChange={handleChange} placeholder="••••••••" />
-            </div>
-            <div className="field">
-              <label>Số điện thoại *</label>
-              <input className="inp" name="phone" value={formData.phone}
-                onChange={handleChange} placeholder="0901234567" />
-            </div>
-            <div className="field">
-              <label>Giới tính *</label>
-              <select className="inp" name="gender" value={formData.gender} onChange={handleChange}>
-                <option value="male">Nam</option>
-                <option value="female">Nữ</option>
-                <option value="other">Khác</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>Ngày sinh *</label>
-              <input className="inp" name="dateOfBirth" type="date" value={formData.dateOfBirth}
-                onChange={handleChange} />
-            </div>
-            <div className="field">
-              <label>Role</label>
+            <div className="field full">
+              <label>Role mới</label>
               <select className="inp" name="role" value={formData.role} onChange={handleChange}>
                 <option value="Member">Member</option>
                 <option value="StaffManager">StaffManager</option>
                 <option value="Admin">Admin</option>
               </select>
-            </div>
-            <div className="field">
-              <label>Địa chỉ</label>
-              <input className="inp" name="address" value={formData.address}
-                onChange={handleChange} placeholder="123 Đường ABC, TP.HCM" />
-            </div>
-          </div>
-          {formError && (
-            <div style={{ color: "#991B1B", fontSize: 13, marginBottom: 12 }}> {formError}</div>
-          )}
-          <div className="modal-actions">
-            <button className="btn-outline" onClick={() => setShowCreate(false)}>Hủy</button>
-            <button className="btn-primary" onClick={handleCreate} disabled={saving}>
-              {saving ? <Spinner size={16} /> : "Tạo người dùng"}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {/* ── Modal: Chỉnh sửa ── */}
-      {editUser && (
-        <Modal title={`Chỉnh sửa: ${editUser.fullname || editUser.email}`}
-          onClose={() => setEditUser(null)} wide>
-          <div style={{ fontSize: 12, color: "#888", marginBottom: 14, padding: "8px 12px",
-            background: "#FEF9C3", borderRadius: 8, border: "1px solid #FDE68A" }}>
-             Không thể thay đổi email, mật khẩu và role qua form này (giới hạn từ backend)
-          </div>
-          <div className="form-grid">
-            <div className="field">
-              <label>Họ tên *</label>
-              <input className="inp" name="fullname" value={formData.fullname}
-                onChange={handleChange} />
-            </div>
-            <div className="field">
-              <label>Số điện thoại *</label>
-              <input className="inp" name="phone" value={formData.phone}
-                onChange={handleChange} />
-            </div>
-            <div className="field">
-              <label>Giới tính</label>
-              <select className="inp" name="gender" value={formData.gender} onChange={handleChange}>
-                <option value="male">Nam</option>
-                <option value="female">Nữ</option>
-                <option value="other">Khác</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>Ngày sinh</label>
-              <input className="inp" name="dateOfBirth" type="date" value={formData.dateOfBirth}
-                onChange={handleChange} />
-            </div>
-            <div className="field full">
-              <label>Địa chỉ</label>
-              <input className="inp" name="address" value={formData.address}
-                onChange={handleChange} placeholder="123 Đường ABC, TP.HCM" />
             </div>
           </div>
           {formError && (
@@ -416,27 +272,6 @@ const UserManagement = () => {
             <button className="btn-outline" onClick={() => setEditUser(null)}>Hủy</button>
             <button className="btn-primary" onClick={handleUpdate} disabled={saving}>
               {saving ? <Spinner size={16} /> : "Lưu thay đổi"}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {/* ── Modal: Xác nhận xóa ── */}
-      {deleteUser && (
-        <Modal title="🗑 Xác nhận xóa" onClose={() => setDeleteUser(null)}>
-          <div className="confirm-body">
-            Bạn có chắc muốn xóa người dùng{" "}
-            <span className="confirm-name">{deleteUser.fullname || deleteUser.email}</span>?
-            <br />
-            <span style={{ color: "#991B1B", fontSize: 13 }}>
-              Hành động này không thể hoàn tác.
-            </span>
-          </div>
-          <div className="modal-actions">
-            <button className="btn-outline" onClick={() => setDeleteUser(null)}>Hủy</button>
-            <button className="btn-icon-red" style={{ padding: "8px 20px", fontSize: 14 }}
-              onClick={handleDelete} disabled={saving}>
-              {saving ? <Spinner size={16} /> : "🗑 Xóa"}
             </button>
           </div>
         </Modal>
