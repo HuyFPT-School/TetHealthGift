@@ -150,6 +150,22 @@ const addComment = async (req, res) => {
       });
     }
 
+    // Chỉ cho phép comment khi đã nhận hàng thành công
+    const deliveredOrder = await Order.findOne({
+      customer: author,
+      orderStatus: "delivered",
+      $or: [
+        { "cartItems.product": id },
+        { "cartItems.basketDetails.items.productId": id },
+      ],
+    });
+
+    if (!deliveredOrder) {
+      return res.status(403).json({
+        message: "Bạn chỉ có thể đánh giá sản phẩm sau khi đã nhận hàng thành công",
+      });
+    }
+
     const comments = await productService.addComment(id, {
       rating,
       content,
